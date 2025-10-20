@@ -70,6 +70,7 @@ async function seed() {
         fundedAmount: 875000,
         durationMonths: 36,
         status: 'active' as const,
+        isPremium: false,
         imageUrl:
           'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800',
         createdBy: admin._id,
@@ -85,6 +86,7 @@ async function seed() {
         fundedAmount: 3250000,
         durationMonths: 24,
         status: 'active' as const,
+        isPremium: true,
         imageUrl:
           'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800',
         createdBy: admin._id,
@@ -100,6 +102,7 @@ async function seed() {
         fundedAmount: 640000,
         durationMonths: 48,
         status: 'active' as const,
+        isPremium: false,
         imageUrl:
           'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=800',
         createdBy: admin._id,
@@ -115,6 +118,7 @@ async function seed() {
         fundedAmount: 4500000,
         durationMonths: 60,
         status: 'active' as const,
+        isPremium: true,
         imageUrl:
           'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800',
         createdBy: admin._id,
@@ -130,6 +134,7 @@ async function seed() {
         fundedAmount: 960000,
         durationMonths: 30,
         status: 'active' as const,
+        isPremium: false,
         imageUrl:
           'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
         createdBy: admin._id,
@@ -145,6 +150,7 @@ async function seed() {
         fundedAmount: 900000,
         durationMonths: 36,
         status: 'active' as const,
+        isPremium: false,
         imageUrl:
           'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=800',
         createdBy: admin._id,
@@ -160,6 +166,7 @@ async function seed() {
         fundedAmount: 2500000,
         durationMonths: 42,
         status: 'active' as const,
+        isPremium: true,
         imageUrl:
           'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800',
         createdBy: admin._id,
@@ -175,6 +182,7 @@ async function seed() {
         fundedAmount: 8000000,
         durationMonths: 48,
         status: 'completed' as const,
+        isPremium: true,
         imageUrl:
           'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800',
         createdBy: admin._id,
@@ -190,6 +198,7 @@ async function seed() {
         fundedAmount: 420000,
         durationMonths: 24,
         status: 'active' as const,
+        isPremium: false,
         imageUrl:
           'https://images.unsplash.com/photo-1445205170230-053b83016050?w=800',
         createdBy: admin._id,
@@ -205,8 +214,169 @@ async function seed() {
         fundedAmount: 1500000,
         durationMonths: 36,
         status: 'active' as const,
+        isPremium: true,
         imageUrl:
           'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=800',
+        createdBy: admin._id,
+      },
+      {
+        title: 'AI-Powered Healthcare Diagnostics System',
+        description:
+          'Revolutionary AI system for early disease detection using machine learning and medical imaging. The platform integrates with existing hospital infrastructure and has shown 95% accuracy in clinical trials. Targeting hospitals and diagnostic centers across Latin America.',
+        category: 'Healthcare',
+        minInvestment: 30000,
+        roiPercent: 42,
+        targetAmount: 12000000,
+        fundedAmount: 6500000,
+        durationMonths: 48,
+        status: 'active' as const,
+        isPremium: true,
+        imageUrl:
+          'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800',
+        createdBy: admin._id,
+      },
+      {
+        title: 'Blockchain-Based Supply Chain Platform',
+        description:
+          'Enterprise blockchain solution for transparent supply chain management. Provides real-time tracking, authenticity verification, and automated smart contracts. Already partnered with 50+ global manufacturers and distributors.',
+        category: 'Technology',
+        minInvestment: 20000,
+        roiPercent: 38,
+        targetAmount: 8500000,
+        fundedAmount: 4250000,
+        durationMonths: 36,
+        status: 'active' as const,
+        isPremium: true,
+        imageUrl:
+          'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800',
+        createdBy: admin._id,
+      },
+      {
+        title: 'Premium Wine Estate and Vineyard',
+        description:
+          'Acquisition and modernization of a historic wine estate in Southern Brazil. Includes 200 hectares of vineyards, state-of-the-art wine production facilities, and luxury tasting room. Targeting premium wine export markets in Europe and Asia.',
+        category: 'Agriculture',
+        minInvestment: 50000,
+        roiPercent: 26,
+        targetAmount: 18000000,
+        fundedAmount: 9000000,
+        durationMonths: 72,
+        status: 'active' as const,
+        isPremium: true,
+        imageUrl:
+          'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=800',
+        createdBy: admin._id,
+      },
+      {
+        title: 'Space Technology Satellite Network',
+        description:
+          'Development and deployment of low-orbit satellite constellation for global internet coverage. Focused on providing high-speed connectivity to underserved regions. First phase includes 20 satellites with plans to scale to 200.',
+        category: 'Technology',
+        minInvestment: 100000,
+        roiPercent: 55,
+        targetAmount: 50000000,
+        fundedAmount: 25000000,
+        durationMonths: 60,
+        status: 'active' as const,
+        isPremium: true,
+        imageUrl:
+          'https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=800',
+        createdBy: admin._id,
+      },
+      {
+        title: 'Luxury Smart City Development',
+        description:
+          'Construction of a sustainable smart city district with 5,000 residential units, commercial spaces, and green areas. Features include IoT infrastructure, renewable energy, automated waste management, and autonomous transportation.',
+        category: 'Real Estate',
+        minInvestment: 75000,
+        roiPercent: 32,
+        targetAmount: 100000000,
+        fundedAmount: 45000000,
+        durationMonths: 96,
+        status: 'active' as const,
+        isPremium: true,
+        imageUrl:
+          'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800',
+        createdBy: admin._id,
+      },
+      {
+        title: 'Advanced Robotics Manufacturing',
+        description:
+          'Production facility for industrial and service robots powered by AI. Robots designed for warehouse automation, healthcare assistance, and manufacturing. Pre-orders from 30+ enterprise clients worth $15M.',
+        category: 'Technology',
+        minInvestment: 40000,
+        roiPercent: 45,
+        targetAmount: 20000000,
+        fundedAmount: 12000000,
+        durationMonths: 48,
+        status: 'active' as const,
+        isPremium: true,
+        imageUrl:
+          'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800',
+        createdBy: admin._id,
+      },
+      {
+        title: 'Quantum Computing Research Center',
+        description:
+          'Establishment of Latin America\'s first quantum computing research and development center. Partnerships with leading universities and tech companies. Focus on cryptography, drug discovery, and financial modeling applications.',
+        category: 'Technology',
+        minInvestment: 80000,
+        roiPercent: 50,
+        targetAmount: 35000000,
+        fundedAmount: 18000000,
+        durationMonths: 60,
+        status: 'active' as const,
+        isPremium: true,
+        imageUrl:
+          'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800',
+        createdBy: admin._id,
+      },
+      {
+        title: 'Offshore Wind Energy Farm',
+        description:
+          'Large-scale offshore wind farm project off the coast of Rio Grande do Sul. 100 wind turbines generating 500MW of clean energy. Long-term power purchase agreements with major industrial consumers already secured.',
+        category: 'Energy',
+        minInvestment: 60000,
+        roiPercent: 29,
+        targetAmount: 75000000,
+        fundedAmount: 30000000,
+        durationMonths: 72,
+        status: 'active' as const,
+        isPremium: true,
+        imageUrl:
+          'https://images.unsplash.com/photo-1532601224476-15c79f2f7a51?w=800',
+        createdBy: admin._id,
+      },
+      {
+        title: 'Biotechnology Gene Therapy Research',
+        description:
+          'Cutting-edge gene therapy research facility focused on treating genetic disorders. FDA Fast Track designation received for lead drug candidate. Clinical trials showing promising results for rare diseases affecting 100,000+ patients globally.',
+        category: 'Healthcare',
+        minInvestment: 90000,
+        roiPercent: 65,
+        targetAmount: 45000000,
+        fundedAmount: 22500000,
+        durationMonths: 84,
+        status: 'active' as const,
+        isPremium: true,
+        imageUrl:
+          'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=800',
+        createdBy: admin._id,
+      },
+      {
+        title: 'International Film Production Studio',
+        description:
+          'State-of-the-art film and TV production complex with sound stages, post-production facilities, and VFX studios. Attracting major international productions with competitive tax incentives and world-class infrastructure.',
+        category: 'Entertainment',
+        minInvestment: 35000,
+        roiPercent: 36,
+        targetAmount: 25000000,
+        fundedAmount: 15000000,
+        durationMonths: 54,
+        status: 'active' as const,
+        isPremium: true,
+        imageUrl:
+          'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=800',
         createdBy: admin._id,
       },
     ];
@@ -236,7 +406,9 @@ async function seed() {
     console.log(`   - ${projects.length} Projects`);
     console.log(`   - ${projects.filter(p => p.status === 'active').length} Active Projects`);
     console.log(`   - ${projects.filter(p => p.status === 'completed').length} Completed Projects`);
-    console.log(`   - 8 Different Categories\n`);
+    console.log(`   - ${projects.filter(p => p.isPremium).length} Premium Projects`);
+    console.log(`   - ${projects.filter(p => !p.isPremium).length} Regular Projects`);
+    console.log(`   - Multiple Categories\n`);
 
     console.log('🚀 You can now:');
     console.log('   1. Start the backend: npm run dev');
