@@ -96,3 +96,48 @@ export const planGuard = (...allowedPlans: string[]) => {
     next();
   };
 };
+
+/**
+ * Optional authentication middleware - attaches user if token is valid, but doesn't fail if no token
+ */
+export const optionalAuthGuard = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Get token from cookie or Authorization header
+    let token: string | undefined;
+
+    if (req.cookies.token) {
+      token = req.cookies.token;
+    } else if (req.headers.authorization?.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    // If no token, proceed without user
+    if (!token) {
+      next();
+      return;
+    }
+
+    // Try to verify token and find user
+    try {
+      const decoded = AuthService.verifyToken(token);
+      const user = await User.findById(decoded.userId);
+
+      if (user) {
+        // Attach user to request if found
+        req.user = user;
+      }
+    } catch (error) {
+      // Token is invalid, but we don't fail - just proceed without user
+      console.log('Optional auth: Invalid token, proceeding without user');
+    }
+
+    next();
+  } catch (error) {
+    // Even if something goes wrong, we proceed without user
+    next();
+  }
+};

@@ -18,61 +18,32 @@ export const PLANS = {
     price: 0,
     priceId: null, // No Stripe price for free plan
     features: [
-      'Browse basic projects',
-      'Limited project details',
+      'Browse all projects',
+      'View project details',
       'Basic ROI calculator',
-      'Email support',
+      'Community support',
+      'Investment tracking',
     ],
     limits: {
       projectsPerMonth: 10,
       simulationsPerMonth: 5,
     },
   },
-  basic: {
-    name: 'Basic',
-    price: 29.99,
-    priceId: process.env.STRIPE_PRICE_BASIC || 'price_basic',
-    features: [
-      'All Free features',
-      'Access to 50+ projects',
-      'Advanced ROI calculator',
-      'Investment recommendations',
-      'Priority email support',
-    ],
-    limits: {
-      projectsPerMonth: 50,
-      simulationsPerMonth: 20,
-    },
-  },
-  plus: {
-    name: 'Plus',
-    price: 59.99,
-    priceId: process.env.STRIPE_PRICE_PLUS || 'price_plus',
-    features: [
-      'All Basic features',
-      'Unlimited project access',
-      'Premium investment opportunities',
-      'Detailed analytics & reports',
-      'Excel export capabilities',
-      '24/7 priority support',
-    ],
-    limits: {
-      projectsPerMonth: -1, // Unlimited
-      simulationsPerMonth: 100,
-    },
-  },
   premium: {
     name: 'Premium',
-    price: 99.99,
+    price: 100,
     priceId: process.env.STRIPE_PRICE_PREMIUM || 'price_premium',
     features: [
-      'All Plus features',
-      'Exclusive premium projects',
-      'Personal investment advisor',
-      'Custom portfolio management',
-      'API access for integrations',
-      'White-label options',
-      'Dedicated account manager',
+      'All Free features',
+      'Access to premium projects',
+      'Unlimited project access',
+      'Advanced ROI calculator with scenarios',
+      'Detailed analytics & reports',
+      'Investment recommendations',
+      'Excel export capabilities',
+      'Priority email support',
+      'Early access to new projects',
+      'Portfolio management tools',
     ],
     limits: {
       projectsPerMonth: -1, // Unlimited
@@ -87,7 +58,7 @@ export class StripeService {
    */
   static async createCheckoutSession(
     userId: string,
-    planKey: 'basic' | 'plus' | 'premium',
+    planKey: 'premium',
     successUrl: string,
     cancelUrl: string
   ): Promise<Stripe.Checkout.Session> {
@@ -167,8 +138,7 @@ export class StripeService {
     try {
       const userId = subscription.metadata.userId;
       const planKey = subscription.metadata.planKey as
-        | 'basic'
-        | 'plus'
+        | 'free'
         | 'premium';
 
       if (!userId || !planKey) {
@@ -328,6 +298,217 @@ export class StripeService {
       return session.url;
     } catch (error: any) {
       logger.error({ err: error }, 'Failed to create portal session');
+      throw error;
+    }
+  }
+
+  /**
+   * Create Payment Intent for project investment
+   */
+  static async createInvestmentPaymentIntent(
+    userId: string,
+    projectId: string,
+    amount: number,
+    investmentId: string
+  ): Promise<Stripe.PaymentIntent> {
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new AppError('User not found', 404);
+      }
+
+      // Create or retrieve Stripe customer
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: user.name,
+          metadata: {
+            userId: userId,
+          },
+        });
+        customerId = customer.id;
+        user.stripeCustomerId = customerId;
+        await user.save();
+      }
+
+      // Create Payment Intent
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: 'usd',
+        customer: customerId,
+        metadata: {
+          userId: userId,
+          projectId: projectId,
+          investmentId: investmentId,
+          type: 'investment',
+        },
+        description: `Investment in project ${projectId}`,
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+
+      logger.info(
+        `Payment Intent created for investment ${investmentId}: ${paymentIntent.id}`
+      );
+
+      return paymentIntent;
+    } catch (error: any) {
+      logger.error({ err: error }, 'Failed to create payment intent');
+      throw error;
+    }
+  }
+
+  /**
+   * Handle successful investment payment
+   */
+  static async handleInvestmentPaymentSuccess(
+    paymentIntent: Stripe.PaymentIntent
+  ): Promise<void> {
+    try {
+      const { userId, projectId, investmentId } = paymentIntent.metadata;
+
+      if (!investmentId) {
+        logger.warn('Payment intent missing investmentId in metadata');
+        return;
+      }
+
+      const { Investment } = await import('../models/Investment');
+      const { Project } = await import('../models/Project');
+
+      // Update investment status
+      const investment = await Investment.findById(investmentId);
+      if (!investment) {
+        logger.error(`Investment ${investmentId} not found`);
+        return;
+      }
+
+      investment.status = 'completed';
+      investment.transactionId = paymentIntent.id;
+      await investment.save();
+
+      // Update project funding with atomic operation to prevent over-funding
+      const project = await Project.findById(projectId);
+      if (project) {
+        const newFundedAmount = project.fundedAmount + investment.amount;
+
+        // Check if target reached
+        const isFunded = newFundedAmount >= project.targetAmount;
+
+        // Use atomic operation to prevent race conditions
+        await Project.findByIdAndUpdate(
+          projectId,
+          {
+            $inc: {
+              fundedAmount: investment.amount,
+              totalInvestors: 1
+            },
+            ...(isFunded && { status: 'funded' }) // Update status if funded
+          },
+          { new: true }
+        );
+
+        if (isFunded) {
+          logger.info(
+            `Project ${projectId} fully funded! Total: $${newFundedAmount}. Funded by ${project.totalInvestors + 1} investors.`
+          );
+        }
+      }
+
+      // Record payment
+      await Payment.create({
+        userId: userId,
+        transactionId: paymentIntent.id,
+        amount: paymentIntent.amount / 100,
+        currency: paymentIntent.currency.toUpperCase(),
+        status: 'succeeded',
+        method: 'stripe',
+      });
+
+      logger.info(
+        `Investment payment completed: ${investmentId}, Transaction: ${paymentIntent.id}`
+      );
+    } catch (error: any) {
+      logger.error(
+        { err: error },
+        'Failed to handle investment payment success'
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Handle failed investment payment
+   */
+  static async handleInvestmentPaymentFailure(
+    paymentIntent: Stripe.PaymentIntent
+  ): Promise<void> {
+    try {
+      const { investmentId } = paymentIntent.metadata;
+
+      if (!investmentId) {
+        logger.warn('Payment intent missing investmentId in metadata');
+        return;
+      }
+
+      const { Investment } = await import('../models/Investment');
+
+      // Update investment status
+      await Investment.findByIdAndUpdate(investmentId, {
+        status: 'failed',
+        notes: paymentIntent.last_payment_error?.message || 'Payment failed',
+      });
+
+      logger.info(`Investment payment failed: ${investmentId}`);
+    } catch (error: any) {
+      logger.error(
+        { err: error },
+        'Failed to handle investment payment failure'
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Process refund for investment
+   */
+  static async processInvestmentRefund(
+    transactionId: string,
+    amount?: number
+  ): Promise<Stripe.Refund> {
+    try {
+      const refundParams: Stripe.RefundCreateParams = {
+        payment_intent: transactionId,
+      };
+
+      if (amount) {
+        refundParams.amount = Math.round(amount * 100); // Convert to cents
+      }
+
+      const refund = await stripe.refunds.create(refundParams);
+
+      logger.info(
+        `Refund processed: ${refund.id} for payment ${transactionId}`
+      );
+
+      return refund;
+    } catch (error: any) {
+      logger.error({ err: error }, 'Failed to process refund');
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieve Payment Intent
+   */
+  static async retrievePaymentIntent(
+    paymentIntentId: string
+  ): Promise<Stripe.PaymentIntent> {
+    try {
+      return await stripe.paymentIntents.retrieve(paymentIntentId);
+    } catch (error: any) {
+      logger.error({ err: error }, 'Failed to retrieve payment intent');
       throw error;
     }
   }

@@ -11,7 +11,8 @@ export interface IProject extends Document {
   totalInvestors: number;
   durationMonths: number;
   startDate?: Date;
-  status: 'active' | 'completed' | 'closed';
+  endDate?: Date;
+  status: 'active' | 'funded' | 'completed' | 'closed';
   isPremium: boolean;
   imageUrl?: string;
   createdBy: Types.ObjectId;
@@ -75,9 +76,12 @@ const ProjectSchema = new Schema<IProject>(
     startDate: {
       type: Date,
     },
+    endDate: {
+      type: Date,
+    },
     status: {
       type: String,
-      enum: ['active', 'completed', 'closed'],
+      enum: ['active', 'funded', 'completed', 'closed'],
       default: 'active',
     },
     isPremium: {

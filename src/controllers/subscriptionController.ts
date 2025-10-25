@@ -40,8 +40,8 @@ export class SubscriptionController {
       const { planKey } = req.body;
       const userId = String(req.user!._id);
 
-      if (!planKey || !['basic', 'plus', 'premium'].includes(planKey)) {
-        throw new AppError('Invalid plan selected', 400);
+      if (!planKey || planKey !== 'premium') {
+        throw new AppError('Invalid plan selected. Only Premium plan is available.', 400);
       }
 
       // Success and cancel URLs

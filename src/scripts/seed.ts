@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { User } from '../models/User';
 import { Project } from '../models/Project';
+import { Investment } from '../models/Investment';
 import { AuthService } from '../services/authService';
 import { ENV } from '../config/env';
 import { logger } from '../config/logger';
@@ -21,6 +22,7 @@ async function seed() {
     logger.info('Clearing existing data...');
     await User.deleteMany({});
     await Project.deleteMany({});
+    await Investment.deleteMany({});
     logger.info('Data cleared');
 
     // Create Admin User

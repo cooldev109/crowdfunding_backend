@@ -2,11 +2,15 @@ import app from './app';
 import { ENV } from './config/env';
 import { connectDatabase, disconnectDatabase } from './config/database';
 import { logger } from './config/logger';
+import { startScheduledJobs } from './services/scheduledJobs';
 
 const startServer = async (): Promise<void> => {
   try {
     // Connect to MongoDB
     await connectDatabase();
+
+    // Start scheduled jobs
+    startScheduledJobs();
 
     // Start Express server
     const server = app.listen(ENV.PORT, () => {

@@ -2,7 +2,8 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IPayment extends Document {
   userId: Types.ObjectId;
-  subscriptionId: Types.ObjectId;
+  subscriptionId?: Types.ObjectId;
+  investmentId?: Types.ObjectId;
   transactionId: string;
   amount: number;
   currency: string;
@@ -21,7 +22,10 @@ const PaymentSchema = new Schema<IPayment>(
     subscriptionId: {
       type: Schema.Types.ObjectId,
       ref: 'Subscription',
-      required: [true, 'Subscription ID is required'],
+    },
+    investmentId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Investment',
     },
     transactionId: {
       type: String,

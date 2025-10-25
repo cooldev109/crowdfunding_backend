@@ -94,6 +94,69 @@ export class ProjectService {
   }
 
   /**
+   * Get ALL projects including premium (Admin only)
+   */
+  static async getAllProjectsAdmin(query: ProjectQuery) {
+    const {
+      page = 1,
+      limit = 100,
+      category,
+      status,
+      minROI,
+      maxROI,
+      search,
+    } = query;
+
+    // Build filter object - NO isPremium filter for admin
+    const filter: any = {};
+
+    if (category) {
+      filter.category = category;
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (minROI !== undefined || maxROI !== undefined) {
+      filter.roiPercent = {};
+      if (minROI !== undefined) {
+        filter.roiPercent.$gte = minROI;
+      }
+      if (maxROI !== undefined) {
+        filter.roiPercent.$lte = maxROI;
+      }
+    }
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const [projects, total] = await Promise.all([
+      Project.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate('createdBy', 'name email')
+        .lean(),
+      Project.countDocuments(filter),
+    ]);
+
+    return {
+      projects,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
    * Get project by ID
    */
   static async getProjectById(id: string): Promise<IProject> {

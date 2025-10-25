@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { ProjectController } from '../controllers/projectController';
-import { authGuard, adminGuard } from '../middlewares/authGuard';
+import { authGuard, adminGuard, optionalAuthGuard } from '../middlewares/authGuard';
 
 const router = Router();
 
@@ -19,11 +19,18 @@ router.get('/categories', ProjectController.getCategories);
 router.get('/stats', authGuard, adminGuard, ProjectController.getProjectStats);
 
 /**
+ * @route   GET /api/projects/admin/all
+ * @desc    Get ALL projects (including premium) for admin
+ * @access  Admin only
+ */
+router.get('/admin/all', authGuard, adminGuard, ProjectController.getAllProjectsAdmin);
+
+/**
  * @route   POST /api/projects/search
  * @desc    Advanced search with plan-based restrictions
- * @access  Authenticated users (plan restrictions apply)
+ * @access  Public (limited data for unauthenticated users)
  */
-router.post('/search', authGuard, ProjectController.advancedSearch);
+router.post('/search', optionalAuthGuard, ProjectController.advancedSearch);
 
 /**
  * @route   GET /api/projects/premium

@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { Investment } from '../models/Investment';
 import { Project } from '../models/Project';
-import { Payment } from '../models/Payment';
 import { User } from '../models/User';
 import { AppError } from '../middlewares/errorHandler';
 import { logger } from '../config/logger';
 import { EmailService } from '../services/emailService';
 import { NotificationService } from '../services/notificationService';
+import { StripeService } from '../services/stripeService';
 import mongoose from 'mongoose';
 
 export class InvestmentController {
@@ -80,7 +80,7 @@ export class InvestmentController {
         );
       }
 
-      // Create investment
+      // Create investment record with pending status
       const investment = await Investment.create({
         userId,
         projectId,
@@ -88,69 +88,59 @@ export class InvestmentController {
         paymentMethod,
         expectedReturn,
         expectedReturnDate,
-        status: 'completed', // Simplified - in production, integrate with payment gateway
+        status: 'pending', // Will be updated to 'completed' by webhook after payment
         investmentDate: new Date(),
       });
 
-      // Update project funding
-      project.fundedAmount += amount;
-      project.totalInvestors = (project.totalInvestors || 0) + 1;
-
-      // Check if project reached target
-      if (project.fundedAmount >= project.targetAmount) {
-        project.status = 'completed';
-      }
-
-      await project.save();
-
-      // Create payment record
-      await Payment.create({
-        userId,
-        amount,
-        currency: 'USD',
-        status: 'completed',
-        method: paymentMethod,
-        transactionId: `INV-${investment._id}`,
-        description: `Investment in ${project.title}`,
-      });
-
       logger.info(
-        `Investment created: User ${userId} invested $${amount} in project ${projectId}`
+        `Investment record created: User ${userId} investing $${amount} in project ${projectId}`
       );
 
-      // Send email and notification (async, don't wait)
-      const user = await User.findById(userId);
-      if (user) {
-        // Send email confirmation
-        EmailService.sendInvestmentConfirmation(user.email, {
-          name: user.name,
-          projectTitle: project.title,
-          amount: investment.amount,
-          expectedReturn: investment.expectedReturn,
-          investmentDate: investment.investmentDate.toISOString(),
-          investmentId: String(investment._id),
-        }).catch(err => logger.error('Email send failed:', err));
-
-        // Create in-app notification
-        NotificationService.createNotification({
+      // Create Stripe Payment Intent
+      let paymentIntent;
+      try {
+        paymentIntent = await StripeService.createInvestmentPaymentIntent(
           userId,
-          type: 'investment',
-          title: 'Investment Confirmed',
-          message: `Your investment of $${amount} in ${project.title} has been confirmed!`,
-          link: `/my-investments`,
-          metadata: {
-            investmentId: String(investment._id),
-            projectId: String(project._id),
-            amount: investment.amount,
-          },
-        }).catch(err => logger.error('Notification create failed:', err));
+          projectId,
+          amount,
+          String(investment._id)
+        );
+
+        logger.info(
+          `Payment Intent created: ${paymentIntent.id} for investment ${investment._id}`
+        );
+      } catch (stripeError: any) {
+        // If Stripe fails, mark investment as failed and throw error
+        investment.status = 'failed';
+        investment.notes = 'Failed to create payment intent';
+        await investment.save();
+
+        logger.error({ err: stripeError }, 'Failed to create payment intent');
+        throw new AppError('Failed to initiate payment. Please try again.', 500);
       }
+
+      // NOTE: Project funding will be updated by the webhook handler after successful payment
+      // Do NOT update project.fundedAmount here
 
       res.status(201).json({
         success: true,
-        message: 'Investment successful!',
+        message: 'Payment initiated. Please complete the payment.',
         data: {
-          investment,
+          investment: {
+            _id: investment._id,
+            projectId: investment.projectId,
+            amount: investment.amount,
+            status: investment.status,
+            expectedReturn: investment.expectedReturn,
+          },
+          paymentIntent: {
+            clientSecret: paymentIntent.client_secret,
+            id: paymentIntent.id,
+          },
+          project: {
+            title: project.title,
+            minInvestment: project.minInvestment,
+          },
         },
       });
     } catch (error) {
@@ -181,7 +171,7 @@ export class InvestmentController {
 
       const [investments, total] = await Promise.all([
         Investment.find(query)
-          .populate('projectId', 'title description imageUrl status category')
+          .populate('projectId', 'title description imageUrl status category startDate endDate')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(Number(limit)),
@@ -402,22 +392,24 @@ export class InvestmentController {
       res.status(200).json({
         success: true,
         data: {
-          investments: investments.map((inv) => ({
-            _id: inv._id,
-            user: {
-              _id: (inv.userId as any)._id,
-              name: (inv.userId as any).name,
-              email: (inv.userId as any).email,
-            },
-            project: {
-              _id: (inv.projectId as any)._id,
-              title: (inv.projectId as any).title,
-            },
-            amount: inv.amount,
-            status: inv.status,
-            transactionId: inv.transactionId,
-            createdAt: inv.createdAt,
-          })),
+          investments: investments
+            .filter((inv) => inv.userId && inv.projectId) // Filter out investments with null refs
+            .map((inv) => ({
+              _id: inv._id,
+              user: {
+                _id: (inv.userId as any)._id,
+                name: (inv.userId as any).name,
+                email: (inv.userId as any).email,
+              },
+              project: {
+                _id: (inv.projectId as any)._id,
+                title: (inv.projectId as any).title,
+              },
+              amount: inv.amount,
+              status: inv.status,
+              transactionId: inv.transactionId,
+              createdAt: inv.createdAt,
+            })),
         },
       });
     } catch (error) {
@@ -459,6 +451,22 @@ export class InvestmentController {
         throw new AppError('Investment is already refunded', 400);
       }
 
+      // Check if investment is completed (has payment)
+      if (investment.status !== 'completed') {
+        throw new AppError(
+          'Only completed investments can be refunded',
+          400
+        );
+      }
+
+      // Check if investment has a transaction ID
+      if (!investment.transactionId) {
+        throw new AppError(
+          'No payment transaction found for this investment',
+          400
+        );
+      }
+
       // Check if investment can be cancelled (within 24 hours for non-admin)
       if (!isAdmin) {
         const hoursSinceInvestment =
@@ -469,6 +477,24 @@ export class InvestmentController {
             400
           );
         }
+      }
+
+      // Process Stripe refund
+      try {
+        await StripeService.processInvestmentRefund(
+          investment.transactionId,
+          investment.amount
+        );
+
+        logger.info(
+          `Stripe refund processed for investment ${id}, transaction: ${investment.transactionId}`
+        );
+      } catch (stripeError: any) {
+        logger.error({ err: stripeError }, 'Failed to process Stripe refund');
+        throw new AppError(
+          'Failed to process refund. Please contact support.',
+          500
+        );
       }
 
       // Update investment status

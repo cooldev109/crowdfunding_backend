@@ -16,7 +16,7 @@ import notificationRoutes from './routes/notificationRoutes';
 import simulationRoutes from './routes/simulationRoutes';
 import contactRoutes from './routes/contactRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
-import { SubscriptionController } from './controllers/subscriptionController';
+import webhookRoutes from './routes/webhookRoutes';
 
 const app: Application = express();
 
@@ -37,11 +37,7 @@ app.use(
 app.use(compression());
 
 // Stripe webhook endpoint - MUST be before express.json() to receive raw body
-app.post(
-  '/api/subscription/webhook',
-  express.raw({ type: 'application/json' }),
-  SubscriptionController.handleWebhook
-);
+app.use('/api/webhooks', webhookRoutes);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

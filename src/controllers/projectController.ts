@@ -170,6 +170,29 @@ export class ProjectController {
   }
 
   /**
+   * Get ALL projects including premium (Admin only)
+   * GET /api/projects/admin/all
+   * @access Admin only
+   */
+  static async getAllProjectsAdmin(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const validatedQuery = projectQuerySchema.parse(req.query);
+      const result = await ProjectService.getAllProjectsAdmin(validatedQuery);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Get all categories
    * GET /api/projects/categories
    * @access Public
