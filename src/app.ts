@@ -17,16 +17,34 @@ import simulationRoutes from './routes/simulationRoutes';
 import contactRoutes from './routes/contactRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 import webhookRoutes from './routes/webhookRoutes';
+import chatbotRoutes from './routes/chatbotRoutes';
+import wompiRoutes from './routes/wompiRoutes';
 
 const app: Application = express();
 
 // Security middleware
 app.use(helmet());
 
-// CORS configuration
+// CORS configuration - allow multiple frontend origins for development
+const allowedOrigins = [
+  ENV.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+];
+
 app.use(
   cors({
-    origin: ENV.CLIENT_URL,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -76,6 +94,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/simulation', simulationRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/payments/wompi', wompiRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

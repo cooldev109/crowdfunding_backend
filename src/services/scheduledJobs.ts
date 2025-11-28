@@ -14,9 +14,9 @@ export function startScheduledJobs() {
 
       const now = new Date();
 
-      // Find all projects that are pending and have passed their end date
+      // Find all projects that are funded and have passed their end date
       const expiredProjects = await Project.find({
-        status: 'pending',
+        status: 'funded',
         endDate: { $lte: now },
       });
 

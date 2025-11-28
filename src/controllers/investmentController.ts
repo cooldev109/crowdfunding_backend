@@ -6,7 +6,7 @@ import { AppError } from '../middlewares/errorHandler';
 import { logger } from '../config/logger';
 import { EmailService } from '../services/emailService';
 import { NotificationService } from '../services/notificationService';
-import { StripeService } from '../services/stripeService';
+import { wompiService } from '../services/wompiService';
 import mongoose from 'mongoose';
 
 export class InvestmentController {
@@ -38,8 +38,31 @@ export class InvestmentController {
         throw new AppError('Project not found', 404);
       }
 
+      logger.info(`Investment attempt: projectId=${projectId}, projectTitle=${project.title}, projectStatus=${project.status}, isPremium=${project.isPremium}`);
+
+      // Check if project is premium and user has active premium subscription
+      if (project.isPremium) {
+        const user = await User.findById(userId);
+        if (!user) {
+          throw new AppError('User not found', 404);
+        }
+
+        const hasPremiumAccess = user.planKey === 'premium' && user.planStatus === 'active';
+
+        if (!hasPremiumAccess) {
+          logger.warn(`User ${userId} attempted to invest in premium project ${projectId} without premium subscription`);
+          throw new AppError(
+            'Se requiere una suscripción premium activa para invertir en proyectos premium',
+            403
+          );
+        }
+
+        logger.info(`User ${userId} has premium access, proceeding with premium project investment`);
+      }
+
       // Check if project accepts investments
       if (project.status !== 'active') {
+        logger.warn(`Project ${projectId} status is "${project.status}", not "active"`);
         throw new AppError(
           'This project is not accepting investments at the moment',
           400
@@ -96,35 +119,11 @@ export class InvestmentController {
         `Investment record created: User ${userId} investing $${amount} in project ${projectId}`
       );
 
-      // Create Stripe Payment Intent
-      let paymentIntent;
-      try {
-        paymentIntent = await StripeService.createInvestmentPaymentIntent(
-          userId,
-          projectId,
-          amount,
-          String(investment._id)
-        );
-
-        logger.info(
-          `Payment Intent created: ${paymentIntent.id} for investment ${investment._id}`
-        );
-      } catch (stripeError: any) {
-        // If Stripe fails, mark investment as failed and throw error
-        investment.status = 'failed';
-        investment.notes = 'Failed to create payment intent';
-        await investment.save();
-
-        logger.error({ err: stripeError }, 'Failed to create payment intent');
-        throw new AppError('Failed to initiate payment. Please try again.', 500);
-      }
-
-      // NOTE: Project funding will be updated by the webhook handler after successful payment
-      // Do NOT update project.fundedAmount here
-
+      // All payments are handled via Wompi (card, PSE, Bancolombia)
+      // Just create the investment record - the actual payment will be handled by Wompi endpoints
       res.status(201).json({
         success: true,
-        message: 'Payment initiated. Please complete the payment.',
+        message: 'Investment created. Please complete the payment.',
         data: {
           investment: {
             _id: investment._id,
@@ -132,10 +131,6 @@ export class InvestmentController {
             amount: investment.amount,
             status: investment.status,
             expectedReturn: investment.expectedReturn,
-          },
-          paymentIntent: {
-            clientSecret: paymentIntent.client_secret,
-            id: paymentIntent.id,
           },
           project: {
             title: project.title,
@@ -479,18 +474,15 @@ export class InvestmentController {
         }
       }
 
-      // Process Stripe refund
+      // Process Wompi void/refund
       try {
-        await StripeService.processInvestmentRefund(
-          investment.transactionId,
-          investment.amount
-        );
+        await wompiService.voidTransaction(investment.transactionId!);
 
         logger.info(
-          `Stripe refund processed for investment ${id}, transaction: ${investment.transactionId}`
+          `Wompi refund processed for investment ${id}, transaction: ${investment.transactionId}`
         );
-      } catch (stripeError: any) {
-        logger.error({ err: stripeError }, 'Failed to process Stripe refund');
+      } catch (wompiError: any) {
+        logger.error({ err: wompiError }, 'Failed to process Wompi refund');
         throw new AppError(
           'Failed to process refund. Please contact support.',
           500

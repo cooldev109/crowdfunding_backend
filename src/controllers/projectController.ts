@@ -4,6 +4,8 @@ import {
   createProjectSchema,
   updateProjectSchema,
   projectQuerySchema,
+  adminProjectQuerySchema,
+  premiumProjectQuerySchema,
 } from '../utils/projectValidation';
 import { logger } from '../config/logger';
 
@@ -180,7 +182,8 @@ export class ProjectController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const validatedQuery = projectQuerySchema.parse(req.query);
+      // Use admin schema with higher default limit (1000 instead of 10)
+      const validatedQuery = adminProjectQuerySchema.parse(req.query);
       const result = await ProjectService.getAllProjectsAdmin(validatedQuery);
 
       res.status(200).json({
@@ -245,7 +248,7 @@ export class ProjectController {
   /**
    * Get premium projects
    * GET /api/projects/premium
-   * @access Authenticated users with premium/pro plan
+   * @access Authenticated users (all signed-in users can view the list)
    */
   static async getPremiumProjects(
     req: Request,
@@ -253,18 +256,10 @@ export class ProjectController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const userPlan = req.user?.planKey || 'free';
-
-      // Check if user has premium plan
-      if (userPlan !== 'premium') {
-        res.status(403).json({
-          success: false,
-          message: 'Premium plan required to access premium projects',
-        });
-        return;
-      }
-
-      const validatedQuery = projectQuerySchema.parse(req.query);
+      // All authenticated users can view the premium projects list
+      // Premium-only features (like viewing details) are handled in the frontend
+      // Use premiumProjectQuerySchema which has a higher default limit (500)
+      const validatedQuery = premiumProjectQuerySchema.parse(req.query);
 
       const result = await ProjectService.getPremiumProjects(validatedQuery);
 

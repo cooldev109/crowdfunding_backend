@@ -153,7 +153,17 @@ export class StripeService {
       // Update user subscription
       user.planKey = planKey;
       user.planStatus = 'active';
-      user.planRenewal = new Date(subscription.current_period_end * 1000);
+
+      // Validate renewal date
+      if (subscription.current_period_end) {
+        const renewalDate = new Date(subscription.current_period_end * 1000);
+        if (!isNaN(renewalDate.getTime())) {
+          user.planRenewal = renewalDate;
+        } else {
+          logger.warn(`Invalid renewal date for subscription: ${subscription.id}`);
+        }
+      }
+
       await user.save();
 
       // Create subscription record

@@ -4,6 +4,7 @@ export interface IProject extends Document {
   title: string;
   description: string;
   category: string;
+  location?: string;
   minInvestment: number;
   roiPercent: number;
   targetAmount: number;
@@ -14,7 +15,23 @@ export interface IProject extends Document {
   endDate?: Date;
   status: 'active' | 'funded' | 'completed' | 'closed';
   isPremium: boolean;
-  imageUrl?: string;
+  imageUrl: string;
+  documents?: Array<{
+    name: string;
+    data: string;
+    type: string;
+    size: number;
+    title?: string;
+    subtitle?: string;
+  }>;
+  // Auction-related fields for premium properties
+  code?: string;
+  city?: string;
+  auctionDate?: Date;
+  propertyType?: string;
+  judicialAppraisal?: number;
+  commercialValue?: number;
+  basePrice?: number;
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -40,6 +57,11 @@ const ProjectSchema = new Schema<IProject>(
       type: String,
       required: [true, 'Category is required'],
       trim: true,
+    },
+    location: {
+      type: String,
+      trim: true,
+      default: 'Global',
     },
     minInvestment: {
       type: Number,
@@ -90,7 +112,47 @@ const ProjectSchema = new Schema<IProject>(
     },
     imageUrl: {
       type: String,
+      required: [true, 'Project image is required'],
       trim: true,
+    },
+    documents: {
+      type: [{
+        name: { type: String, required: true },
+        data: { type: String, required: true },
+        type: { type: String, required: true },
+        size: { type: Number, required: true },
+        title: { type: String },
+        subtitle: { type: String },
+      }],
+      default: [],
+    },
+    // Auction-related fields for premium properties
+    code: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
+    auctionDate: {
+      type: Date,
+    },
+    propertyType: {
+      type: String,
+      trim: true,
+    },
+    judicialAppraisal: {
+      type: Number,
+      min: [0, 'Judicial appraisal must be positive'],
+    },
+    commercialValue: {
+      type: Number,
+      min: [0, 'Commercial value must be positive'],
+    },
+    basePrice: {
+      type: Number,
+      min: [0, 'Base price must be positive'],
     },
     createdBy: {
       type: Schema.Types.ObjectId,
@@ -110,11 +172,28 @@ ProjectSchema.index({ createdAt: -1 });
 ProjectSchema.index({ roiPercent: -1 });
 ProjectSchema.index({ isPremium: 1 });
 
-// Virtual field for funding progress percentage
+// Virtual fields
 ProjectSchema.virtual('progressPercent').get(function () {
   return this.targetAmount > 0
     ? Math.min((this.fundedAmount / this.targetAmount) * 100, 100)
     : 0;
+});
+
+// Admin dashboard compatibility virtuals
+ProjectSchema.virtual('projectName').get(function () {
+  return this.title;
+});
+
+ProjectSchema.virtual('fundingGoal').get(function () {
+  return this.targetAmount;
+});
+
+ProjectSchema.virtual('moneyRaised').get(function () {
+  return this.fundedAmount;
+});
+
+ProjectSchema.virtual('investorsCount').get(function () {
+  return this.totalInvestors;
 });
 
 // Ensure virtuals are included in JSON output

@@ -24,7 +24,7 @@ export interface PaginatedResponse<T> extends ApiResponse<T> {
 }
 
 export type UserRole = 'admin' | 'investor';
-export type PlanKey = 'free' | 'basic' | 'plus' | 'premium';
-export type PlanStatus = 'active' | 'expired' | 'trial';
+export type PlanKey = 'free' | 'premium';
+export type PlanStatus = 'active' | 'expired' | 'cancelled';
 export type ProjectStatus = 'active' | 'completed' | 'closed';
 export type PaymentGateway = 'stripe' | 'pagseguro';

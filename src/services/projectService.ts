@@ -4,6 +4,7 @@ import {
   CreateProjectInput,
   UpdateProjectInput,
   ProjectQuery,
+  AdminProjectQuery,
   AdvancedSearchInput,
   advancedSearchSchema,
 } from '../utils/projectValidation';
@@ -96,7 +97,7 @@ export class ProjectService {
   /**
    * Get ALL projects including premium (Admin only)
    */
-  static async getAllProjectsAdmin(query: ProjectQuery) {
+  static async getAllProjectsAdmin(query: AdminProjectQuery) {
     const {
       page = 1,
       limit = 100,
@@ -296,21 +297,21 @@ export class ProjectService {
       ];
     }
 
-    // Multiple categories (Plus/Premium only)
+    // Multiple categories (Premium only)
     if (categories && categories.length > 0) {
       if (!hasFeatureAccess(userPlan, 'multipleCategories')) {
         throw new AppError(
-          'Multiple category selection requires Plus or Premium plan',
+          'Multiple category selection requires Premium plan',
           403
         );
       }
       filter.category = { $in: categories };
     }
 
-    // ROI range filter (Basic+)
+    // ROI range filter (Premium only)
     if (minROI !== undefined || maxROI !== undefined) {
       if (!hasFeatureAccess(userPlan, 'roiRange')) {
-        throw new AppError('ROI range filter requires Basic plan or higher', 403);
+        throw new AppError('ROI range filter requires Premium plan', 403);
       }
       filter.roiPercent = {};
       if (minROI !== undefined) {
@@ -321,10 +322,10 @@ export class ProjectService {
       }
     }
 
-    // Amount range filter (Plus+)
+    // Amount range filter (Premium only)
     if (minAmount !== undefined || maxAmount !== undefined) {
       if (!hasFeatureAccess(userPlan, 'amountRange')) {
-        throw new AppError('Amount range filter requires Plus plan or higher', 403);
+        throw new AppError('Amount range filter requires Premium plan', 403);
       }
       filter.targetAmount = {};
       if (minAmount !== undefined) {
@@ -335,10 +336,10 @@ export class ProjectService {
       }
     }
 
-    // Duration filter (Plus+)
+    // Duration filter (Premium only)
     if (minDuration !== undefined || maxDuration !== undefined) {
       if (!hasFeatureAccess(userPlan, 'durationFilter')) {
-        throw new AppError('Duration filter requires Plus plan or higher', 403);
+        throw new AppError('Duration filter requires Premium plan', 403);
       }
       filter.durationMonths = {};
       if (minDuration !== undefined) {
@@ -397,12 +398,12 @@ export class ProjectService {
   }
 
   /**
-   * Get premium projects only
+   * Get premium projects only (returns all 100 premium projects by default)
    */
   static async getPremiumProjects(query: ProjectQuery) {
     const {
       page = 1,
-      limit = 10,
+      limit = 100, // Higher default limit for premium projects to show all
       category,
       status,
       minROI,

@@ -38,7 +38,27 @@ export const createProjectSchema = z.object({
     .max(240, 'Duration cannot exceed 240 months'),
   startDate: z.string().datetime().optional().or(z.date().optional()),
   status: z.enum(['active', 'completed', 'closed']).optional().default('active'),
-  imageUrl: z.string().url('Invalid image URL').optional().or(z.literal('')),
+  imageUrl: z
+    .string()
+    .refine(
+      (val) => !val || val === '' || val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:image/'),
+      'Invalid image URL or base64 data'
+    )
+    .optional()
+    .or(z.literal('')),
+  documents: z
+    .array(
+      z.object({
+        name: z.string().min(1, 'Document name is required'),
+        data: z.string().min(1, 'Document data is required'),
+        type: z.string().min(1, 'Document type is required'),
+        size: z.number().positive('Document size must be positive'),
+        title: z.string().optional(),
+        subtitle: z.string().optional(),
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 // Update project schema (all fields optional except what's being updated)
@@ -78,13 +98,54 @@ export const updateProjectSchema = z.object({
     .optional(),
   startDate: z.string().datetime().optional().or(z.date().optional()),
   status: z.enum(['active', 'completed', 'closed']).optional(),
-  imageUrl: z.string().url('Invalid image URL').optional().or(z.literal('')),
+  imageUrl: z
+    .string()
+    .refine(
+      (val) => !val || val === '' || val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:image/'),
+      'Invalid image URL or base64 data'
+    )
+    .optional()
+    .or(z.literal('')),
+  documents: z
+    .array(
+      z.object({
+        name: z.string().min(1, 'Document name is required'),
+        data: z.string().min(1, 'Document data is required'),
+        type: z.string().min(1, 'Document type is required'),
+        size: z.number().positive('Document size must be positive'),
+        title: z.string().optional(),
+        subtitle: z.string().optional(),
+      })
+    )
+    .optional(),
 });
 
 // Query/filter schema
 export const projectQuerySchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default('10'),
+  category: z.string().optional(),
+  status: z.enum(['active', 'completed', 'closed']).optional(),
+  minROI: z.string().regex(/^\d+(\.\d+)?$/).transform(Number).optional(),
+  maxROI: z.string().regex(/^\d+(\.\d+)?$/).transform(Number).optional(),
+  search: z.string().optional(),
+});
+
+// Admin query schema - no pagination limit for getting all projects
+export const adminProjectQuerySchema = z.object({
+  page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().default('1000'),
+  category: z.string().optional(),
+  status: z.enum(['active', 'completed', 'closed']).optional(),
+  minROI: z.string().regex(/^\d+(\.\d+)?$/).transform(Number).optional(),
+  maxROI: z.string().regex(/^\d+(\.\d+)?$/).transform(Number).optional(),
+  search: z.string().optional(),
+});
+
+// Premium projects query schema - higher default limit to show all premium projects
+export const premiumProjectQuerySchema = z.object({
+  page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().default('500'),
   category: z.string().optional(),
   status: z.enum(['active', 'completed', 'closed']).optional(),
   minROI: z.string().regex(/^\d+(\.\d+)?$/).transform(Number).optional(),
@@ -136,4 +197,6 @@ export const advancedSearchSchema = z.object({
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 export type ProjectQuery = z.infer<typeof projectQuerySchema>;
+export type AdminProjectQuery = z.infer<typeof adminProjectQuerySchema>;
+export type PremiumProjectQuery = z.infer<typeof premiumProjectQuerySchema>;
 export type AdvancedSearchInput = z.infer<typeof advancedSearchSchema>;

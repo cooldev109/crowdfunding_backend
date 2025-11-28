@@ -37,38 +37,6 @@ export const PLAN_FEATURES: Record<string, PlanFeatures> = {
       savedSearches: 0,
     },
   },
-  basic: {
-    name: 'Basic',
-    searchFilters: {
-      basicFilters: true,
-      roiRange: true,
-      amountRange: false,
-      multipleCategories: false,
-      advancedSort: false,
-      durationFilter: false,
-    },
-    limits: {
-      projectsPerMonth: 50,
-      simulationsPerMonth: 20,
-      savedSearches: 3,
-    },
-  },
-  plus: {
-    name: 'Plus',
-    searchFilters: {
-      basicFilters: true,
-      roiRange: true,
-      amountRange: true,
-      multipleCategories: true,
-      advancedSort: false,
-      durationFilter: true,
-    },
-    limits: {
-      projectsPerMonth: 200,
-      simulationsPerMonth: 100,
-      savedSearches: 10,
-    },
-  },
   premium: {
     name: 'Premium',
     searchFilters: {
@@ -111,7 +79,7 @@ export function getPlanFeatures(planKey: string): PlanFeatures {
 export function getMinimumPlanForFeature(
   feature: keyof PlanFeatures['searchFilters']
 ): string {
-  const plans = ['free', 'basic', 'plus', 'premium'];
+  const plans = ['free', 'premium'];
   for (const planKey of plans) {
     if (PLAN_FEATURES[planKey].searchFilters[feature]) {
       return planKey;

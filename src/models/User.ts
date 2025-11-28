@@ -6,8 +6,8 @@ export interface IUser extends Document {
   passwordHash: string;
   phone?: string;
   role: 'admin' | 'investor';
-  planKey: 'free' | 'basic' | 'plus' | 'premium';
-  planStatus: 'active' | 'expired' | 'trial';
+  planKey: 'free' | 'premium';
+  planStatus: 'active' | 'expired' | 'cancelled';
   planRenewal?: Date;
   stripeCustomerId?: string;
   createdAt: Date;
@@ -52,12 +52,12 @@ const UserSchema = new Schema<IUser>(
     },
     planKey: {
       type: String,
-      enum: ['free', 'basic', 'plus', 'premium'],
+      enum: ['free', 'premium'],
       default: 'free',
     },
     planStatus: {
       type: String,
-      enum: ['active', 'expired', 'trial'],
+      enum: ['active', 'expired', 'cancelled'],
       default: 'active',
     },
     planRenewal: {
@@ -80,7 +80,7 @@ const UserSchema = new Schema<IUser>(
 );
 
 // Indexes
-UserSchema.index({ email: 1 }, { unique: true });
+// Note: email index is created automatically by unique: true in schema
 UserSchema.index({ role: 1 });
 UserSchema.index({ planKey: 1 });
 

@@ -1,5 +1,30 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
+// Payment status enum
+export enum PaymentStatus {
+  PENDING = 'pending',
+  SUCCEEDED = 'succeeded',
+  FAILED = 'failed',
+  REFUNDED = 'refunded',
+}
+
+// Payment method enum
+export enum PaymentMethod {
+  CARD = 'card',
+  PSE = 'pse',
+  BANCOLOMBIA = 'bancolombia',
+  NEQUI = 'nequi',
+  BANK_TRANSFER = 'bank_transfer',
+  STRIPE = 'stripe',
+}
+
+// Payment gateway enum
+export enum PaymentGateway {
+  WOMPI = 'wompi',
+  STRIPE = 'stripe',
+  PAYU = 'payu',
+}
+
 export interface IPayment extends Document {
   userId: Types.ObjectId;
   subscriptionId?: Types.ObjectId;
@@ -7,9 +32,22 @@ export interface IPayment extends Document {
   transactionId: string;
   amount: number;
   currency: string;
-  status: string;
-  method: string;
+  status: PaymentStatus;
+  paymentMethod: PaymentMethod;
+  paymentGateway: PaymentGateway;
+  gatewayReference?: string;
+  metadata?: {
+    wompiTransactionId?: string;
+    stripePaymentIntentId?: string;
+    paymentMethodType?: string;
+    financialInstitutionCode?: string;
+    lastWebhookEvent?: string;
+    lastWebhookTimestamp?: number;
+    statusMessage?: string;
+    [key: string]: any;
+  };
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const PaymentSchema = new Schema<IPayment>(
@@ -42,30 +80,47 @@ const PaymentSchema = new Schema<IPayment>(
       type: String,
       required: [true, 'Currency is required'],
       uppercase: true,
-      default: 'BRL',
+      default: 'COP',
     },
     status: {
       type: String,
       required: [true, 'Status is required'],
-      enum: ['pending', 'succeeded', 'failed', 'refunded'],
-      default: 'pending',
+      enum: Object.values(PaymentStatus),
+      default: PaymentStatus.PENDING,
     },
-    method: {
+    paymentMethod: {
       type: String,
       required: [true, 'Payment method is required'],
+      enum: Object.values(PaymentMethod),
       trim: true,
+    },
+    paymentGateway: {
+      type: String,
+      required: [true, 'Payment gateway is required'],
+      enum: Object.values(PaymentGateway),
+      default: PaymentGateway.WOMPI,
+    },
+    gatewayReference: {
+      type: String,
+      trim: true,
+    },
+    metadata: {
+      type: Schema.Types.Mixed,
+      default: {},
     },
   },
   {
-    timestamps: { createdAt: true, updatedAt: false },
+    timestamps: true,
   }
 );
 
 // Indexes
 PaymentSchema.index({ userId: 1 });
 PaymentSchema.index({ subscriptionId: 1 });
-PaymentSchema.index({ transactionId: 1 }, { unique: true });
+PaymentSchema.index({ investmentId: 1 });
 PaymentSchema.index({ status: 1 });
+PaymentSchema.index({ paymentGateway: 1 });
 PaymentSchema.index({ createdAt: -1 });
+PaymentSchema.index({ gatewayReference: 1 });
 
 export const Payment = mongoose.model<IPayment>('Payment', PaymentSchema);
