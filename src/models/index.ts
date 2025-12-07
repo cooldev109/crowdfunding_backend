@@ -5,3 +5,6 @@ export { Payment, IPayment } from './Payment';
 export { Upload, IUpload } from './Upload';
 export { Simulation, ISimulation } from './Simulation';
 export { AuditLog, IAuditLog } from './AuditLog';
+export { Investment, IInvestment } from './Investment';
+export { Notification, INotification } from './Notification';
+export { Payout, IPayout } from './Payout';

@@ -10,4 +10,11 @@ const router = Router();
  */
 router.post('/', ContactController.submitContactForm);
 
+/**
+ * @route   POST /api/contact/meeting
+ * @desc    Submit meeting request
+ * @access  Public
+ */
+router.post('/meeting', ContactController.submitMeetingRequest);
+
 export default router;

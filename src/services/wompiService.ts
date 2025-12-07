@@ -79,6 +79,38 @@ export interface WompiBank {
   financial_institution_name: string;
 }
 
+// Disbursement (Payout) interfaces
+export interface WompiDisbursementRequest {
+  amount_in_cents: number;
+  currency: string;
+  reference: string;
+  bank_account: {
+    bank_code: string;
+    account_type: 'SAVINGS' | 'CHECKING'; // SAVINGS = Ahorros, CHECKING = Corriente
+    account_number: string;
+    account_holder_name: string;
+    account_holder_document_type: string; // CC, CE, NIT, TI, PP
+    account_holder_document_number: string;
+  };
+  description?: string;
+}
+
+export interface WompiDisbursement {
+  id: string;
+  status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  status_message?: string;
+  reference: string;
+  amount_in_cents: number;
+  currency: string;
+  bank_account: {
+    bank_code: string;
+    account_type: string;
+    account_number_last_four: string;
+  };
+  created_at: string;
+  finalized_at?: string;
+}
+
 export interface WompiWebhookEvent {
   event: string;
   data: {
@@ -543,6 +575,261 @@ class WompiService {
    */
   getPublicKey(): string {
     return this.publicKey;
+  }
+
+  // ============================================
+  // DISBURSEMENT (PAYOUT) METHODS
+  // ============================================
+
+  /**
+   * Create a disbursement (payout) to a bank account
+   * This sends money TO a user's bank account
+   */
+  async createDisbursement(params: {
+    amount: number;
+    reference: string;
+    bankCode: string;
+    accountType: 'savings' | 'checking';
+    accountNumber: string;
+    accountHolderName: string;
+    documentType: string;
+    documentNumber: string;
+    description?: string;
+  }): Promise<WompiDisbursement> {
+    try {
+      const amountInCents = Math.round(params.amount * 100);
+
+      const disbursementData: WompiDisbursementRequest = {
+        amount_in_cents: amountInCents,
+        currency: 'COP',
+        reference: params.reference,
+        bank_account: {
+          bank_code: params.bankCode,
+          account_type: params.accountType === 'savings' ? 'SAVINGS' : 'CHECKING',
+          account_number: params.accountNumber,
+          account_holder_name: params.accountHolderName,
+          account_holder_document_type: params.documentType.toUpperCase(),
+          account_holder_document_number: params.documentNumber,
+        },
+        description: params.description || `Payout ${params.reference}`,
+      };
+
+      logger.info({ disbursementData: { ...disbursementData, bank_account: { ...disbursementData.bank_account, account_number: '****' } } }, 'Creating Wompi disbursement');
+
+      const response = await this.client.post('/disbursements', disbursementData);
+
+      logger.info(`Wompi disbursement created: ${response.data.data.id}`);
+      return response.data.data;
+    } catch (error: any) {
+      logger.error({ err: error, responseData: error.response?.data }, 'Error creating Wompi disbursement');
+
+      const errorData = error.response?.data?.error;
+      let errorMessage = 'Failed to create disbursement';
+
+      if (errorData) {
+        if (errorData.messages && typeof errorData.messages === 'object') {
+          const fieldErrors: string[] = [];
+          for (const [field, messages] of Object.entries(errorData.messages)) {
+            const msgArray = Array.isArray(messages) ? messages : [messages];
+            fieldErrors.push(`${field}: ${msgArray.join(', ')}`);
+          }
+          errorMessage = fieldErrors.join('; ');
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.reason) {
+          errorMessage = errorData.reason;
+        }
+      }
+
+      throw new AppError(errorMessage, 400);
+    }
+  }
+
+  /**
+   * Get disbursement status
+   */
+  async getDisbursement(disbursementId: string): Promise<WompiDisbursement> {
+    try {
+      const response = await this.client.get(`/disbursements/${disbursementId}`);
+      return response.data.data;
+    } catch (error: any) {
+      logger.error('Error getting disbursement:', error.response?.data || error.message);
+      throw new AppError(error.response?.data?.error?.message || 'Failed to get disbursement', 400);
+    }
+  }
+
+  /**
+   * Get list of banks available for disbursements
+   */
+  async getDisbursementBanks(): Promise<WompiBank[]> {
+    try {
+      // Use the same endpoint as PSE banks for Colombian banks
+      const response = await this.client.get('/pse/financial_institutions');
+      return response.data.data;
+    } catch (error: any) {
+      logger.error('Error getting disbursement banks:', error.response?.data || error.message);
+      throw new AppError(error.response?.data?.error?.message || 'Failed to get banks', 400);
+    }
+  }
+
+  /**
+   * Colombian bank codes reference
+   */
+  static readonly COLOMBIAN_BANKS: Record<string, string> = {
+    '001': 'Banco de Bogotá',
+    '002': 'Banco Popular',
+    '006': 'Banco Corpbanca',
+    '007': 'Bancolombia',
+    '009': 'Citibank',
+    '012': 'Banco GNB Sudameris',
+    '013': 'BBVA Colombia',
+    '019': 'Banco Colpatria',
+    '023': 'Banco de Occidente',
+    '031': 'Bancoldex',
+    '032': 'BCSC',
+    '040': 'Banco Agrario',
+    '041': 'Banco Davivienda',
+    '042': 'Banco AV Villas',
+    '051': 'Banco Caja Social',
+    '052': 'Banco Falabella',
+    '053': 'Banco Finandina',
+    '054': 'Banco W',
+    '055': 'Banco Pichincha',
+    '056': 'Bancoomeva',
+    '057': 'Banco Itaú',
+    '058': 'Banco Santander',
+    '059': 'Banco Mundo Mujer',
+    '060': 'Banco Multibank',
+    '061': 'Banco Bancompartir',
+    '062': 'Banco Coopcentral',
+    '063': 'Banco Serfinanza',
+    '065': 'Banco Coomeva',
+    '066': 'Banco Compartir',
+    '067': 'Lulo Bank',
+    '068': 'Banco Pibank',
+    '069': 'Banco J.P. Morgan',
+    '070': 'Dale',
+    '071': 'Rappipay',
+    '072': 'Movii',
+    '073': 'Nequi',
+    '074': 'Daviplata',
+    '075': 'Banco Nu Colombia',
+  };
+
+  /**
+   * Get subscription checkout info (returns data for frontend to display payment form)
+   */
+  getSubscriptionCheckoutInfo(params: {
+    planKey: string;
+    planName: string;
+    amount: number;
+    billingCycle: 'monthly' | 'annual';
+    reference: string;
+  }): {
+    reference: string;
+    amount: number;
+    amountInCents: number;
+    currency: string;
+    planName: string;
+    billingCycle: string;
+    publicKey: string;
+    integritySignature: string;
+  } {
+    const amountInCents = Math.round(params.amount * 100);
+    const currency = 'COP';
+    const integritySignature = this.generateIntegritySignature(params.reference, amountInCents, currency);
+
+    return {
+      reference: params.reference,
+      amount: params.amount,
+      amountInCents,
+      currency,
+      planName: params.planName,
+      billingCycle: params.billingCycle,
+      publicKey: this.publicKey,
+      integritySignature,
+    };
+  }
+
+  /**
+   * Create subscription with card payment
+   */
+  async createSubscriptionCardTransaction(params: {
+    planKey: string;
+    planName: string;
+    amount: number;
+    billingCycle: 'monthly' | 'annual';
+    reference: string;
+    customerEmail: string;
+    customerName: string;
+    customerDocument: string;
+    customerDocumentType?: string;
+    cardToken: string;
+    installments?: number;
+    userId: string;
+  }): Promise<WompiTransaction> {
+    try {
+      const acceptanceToken = await this.getAcceptanceToken();
+      const amountInCents = Math.round(params.amount * 100);
+      const currency = 'COP';
+
+      // Generate integrity signature
+      const integritySignature = this.generateIntegritySignature(
+        params.reference,
+        amountInCents,
+        currency
+      );
+
+      const transactionData: WompiTransactionRequest = {
+        amount_in_cents: amountInCents,
+        currency,
+        customer_email: String(params.customerEmail),
+        reference: String(params.reference),
+        payment_method: {
+          type: WompiPaymentMethod.CARD,
+          token: String(params.cardToken),
+          installments: params.installments || 1,
+        },
+        customer_data: {
+          full_name: String(params.customerName),
+          legal_id: String(params.customerDocument),
+          legal_id_type: String(params.customerDocumentType || 'CC'),
+        },
+      };
+
+      logger.info({ transactionData }, 'Creating subscription card transaction');
+
+      const response = await this.client.post('/transactions', {
+        ...transactionData,
+        acceptance_token: String(acceptanceToken),
+        signature: String(integritySignature),
+      });
+
+      logger.info(`Subscription card transaction created: ${response.data.data.id}`);
+      return response.data.data;
+    } catch (error: any) {
+      logger.error({ err: error, responseData: error.response?.data }, 'Error creating subscription card transaction');
+
+      const errorData = error.response?.data?.error;
+      let errorMessage = 'Failed to create subscription payment';
+
+      if (errorData) {
+        if (errorData.messages && typeof errorData.messages === 'object') {
+          const fieldErrors: string[] = [];
+          for (const [field, messages] of Object.entries(errorData.messages)) {
+            const msgArray = Array.isArray(messages) ? messages : [messages];
+            fieldErrors.push(`${field}: ${msgArray.join(', ')}`);
+          }
+          errorMessage = fieldErrors.join('; ');
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.reason) {
+          errorMessage = errorData.reason;
+        }
+      }
+
+      throw new AppError(errorMessage, 400);
+    }
   }
 }
 

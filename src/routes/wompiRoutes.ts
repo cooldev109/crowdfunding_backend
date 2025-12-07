@@ -9,6 +9,7 @@ import {
   getTransactionStatus,
   handleWebhook,
   generateIntegrity,
+  getPaymentHistory,
 } from '../controllers/wompiController';
 import { authGuard } from '../middlewares/authGuard';
 
@@ -42,5 +43,8 @@ router.get('/transaction/:transactionId', getTransactionStatus);
 
 // Generate integrity signature for frontend
 router.post('/integrity', generateIntegrity);
+
+// Get user's payment history
+router.get('/history', getPaymentHistory);
 
 export default router;

@@ -20,6 +20,9 @@ export interface PlanFeatures {
   };
 }
 
+// Paid plans for easy checking
+export const PAID_PLANS = ['esencial', 'pro', 'prime'];
+
 export const PLAN_FEATURES: Record<string, PlanFeatures> = {
   free: {
     name: 'Free',
@@ -37,8 +40,40 @@ export const PLAN_FEATURES: Record<string, PlanFeatures> = {
       savedSearches: 0,
     },
   },
-  premium: {
-    name: 'Premium',
+  esencial: {
+    name: 'Esencial',
+    searchFilters: {
+      basicFilters: true,
+      roiRange: true,
+      amountRange: true,
+      multipleCategories: true,
+      advancedSort: false,
+      durationFilter: false,
+    },
+    limits: {
+      projectsPerMonth: -1, // Unlimited
+      simulationsPerMonth: 5,
+      savedSearches: 10,
+    },
+  },
+  pro: {
+    name: 'Pro',
+    searchFilters: {
+      basicFilters: true,
+      roiRange: true,
+      amountRange: true,
+      multipleCategories: true,
+      advancedSort: true,
+      durationFilter: true,
+    },
+    limits: {
+      projectsPerMonth: -1, // Unlimited
+      simulationsPerMonth: -1, // Unlimited
+      savedSearches: -1, // Unlimited
+    },
+  },
+  prime: {
+    name: 'Prime',
     searchFilters: {
       basicFilters: true,
       roiRange: true,
@@ -79,11 +114,18 @@ export function getPlanFeatures(planKey: string): PlanFeatures {
 export function getMinimumPlanForFeature(
   feature: keyof PlanFeatures['searchFilters']
 ): string {
-  const plans = ['free', 'premium'];
+  const plans = ['free', 'esencial', 'pro', 'prime'];
   for (const planKey of plans) {
     if (PLAN_FEATURES[planKey].searchFilters[feature]) {
       return planKey;
     }
   }
-  return 'premium';
+  return 'esencial';
+}
+
+/**
+ * Check if a plan key represents a paid subscription
+ */
+export function isPaidPlan(planKey: string): boolean {
+  return PAID_PLANS.includes(planKey);
 }

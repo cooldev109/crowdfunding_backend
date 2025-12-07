@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import { ENV } from './config/env';
 import { errorHandler } from './middlewares/errorHandler';
 import { logger } from './config/logger';
+import { generalLimiter } from './middlewares/rateLimiter';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import projectRoutes from './routes/projectRoutes';
@@ -17,23 +18,53 @@ import simulationRoutes from './routes/simulationRoutes';
 import contactRoutes from './routes/contactRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 import webhookRoutes from './routes/webhookRoutes';
-import chatbotRoutes from './routes/chatbotRoutes';
 import wompiRoutes from './routes/wompiRoutes';
+import payoutRoutes from './routes/payoutRoutes';
+import verificationRoutes from './routes/verificationRoutes';
 
 const app: Application = express();
 
-// Security middleware
-app.use(helmet());
+// Security middleware - enhanced for production
+app.use(helmet({
+  contentSecurityPolicy: ENV.NODE_ENV === 'production' ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.wompi.co"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "https://sandbox.wompi.co", "https://production.wompi.co", ENV.CLIENT_URL],
+      frameSrc: ["'self'", "https://checkout.wompi.co"],
+    }
+  } : false, // Disable CSP in development for easier debugging
+  crossOriginEmbedderPolicy: false, // Required for loading external resources
+  hsts: ENV.NODE_ENV === 'production' ? {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  } : false,
+}));
 
-// CORS configuration - allow multiple frontend origins for development
-const allowedOrigins = [
-  ENV.CLIENT_URL,
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5175',
-  'http://localhost:5176',
-  'http://localhost:5177',
-];
+// CORS configuration
+const isProduction = ENV.NODE_ENV === 'production';
+const allowedOrigins: string[] = [ENV.CLIENT_URL];
+
+// Add development origins only in non-production
+if (!isProduction) {
+  allowedOrigins.push(
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://localhost:5177'
+  );
+}
+
+// Add additional origins from env (comma-separated)
+if (process.env.CORS_ORIGINS) {
+  const additionalOrigins = process.env.CORS_ORIGINS.split(',').map(o => o.trim());
+  allowedOrigins.push(...additionalOrigins);
+}
 
 app.use(
   cors({
@@ -63,6 +94,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Cookie parser
 app.use(cookieParser());
+
+// Rate limiting - apply to all API routes except webhooks
+app.use('/api', generalLimiter);
 
 // Request logging middleware
 app.use((req: Request, _res: Response, next) => {
@@ -94,8 +128,9 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/simulation', simulationRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/payments/wompi', wompiRoutes);
+app.use('/api/payouts', payoutRoutes);
+app.use('/api/verification', verificationRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { SubscriptionController } from '../controllers/subscriptionController';
 import { authGuard } from '../middlewares/authGuard';
-import express from 'express';
 
 const router = Router();
 
@@ -14,22 +13,31 @@ router.get('/plans', SubscriptionController.getPlans);
 
 /**
  * @route   POST /api/subscription/checkout
- * @desc    Create Stripe checkout session
+ * @desc    Create checkout session - returns payment form data
  * @access  Private
  */
 router.post('/checkout', authGuard, SubscriptionController.createCheckout);
 
 /**
- * @route   POST /api/subscription/webhook
- * @desc    Handle Stripe webhook events
- * @access  Public (Stripe only)
- * @note    Must be BEFORE express.json() middleware to get raw body
+ * @route   POST /api/subscription/pay
+ * @desc    Process subscription payment with card
+ * @access  Private
  */
-router.post(
-  '/webhook',
-  express.raw({ type: 'application/json' }),
-  SubscriptionController.handleWebhook
-);
+router.post('/pay', authGuard, SubscriptionController.processPayment);
+
+/**
+ * @route   POST /api/subscription/webhook
+ * @desc    Handle Wompi webhook events for subscriptions
+ * @access  Public (Wompi only)
+ */
+router.post('/webhook', SubscriptionController.handleWebhook);
+
+/**
+ * @route   GET /api/subscription/verify/:reference
+ * @desc    Verify subscription payment status
+ * @access  Private
+ */
+router.get('/verify/:reference', authGuard, SubscriptionController.verifyPayment);
 
 /**
  * @route   POST /api/subscription/cancel
@@ -37,13 +45,6 @@ router.post(
  * @access  Private
  */
 router.post('/cancel', authGuard, SubscriptionController.cancelSubscription);
-
-/**
- * @route   GET /api/subscription/portal
- * @desc    Get Stripe customer portal URL
- * @access  Private
- */
-router.get('/portal', authGuard, SubscriptionController.getPortalUrl);
 
 /**
  * @route   GET /api/subscription/current

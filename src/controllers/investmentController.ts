@@ -47,7 +47,8 @@ export class InvestmentController {
           throw new AppError('User not found', 404);
         }
 
-        const hasPremiumAccess = user.planKey === 'premium' && user.planStatus === 'active';
+        const paidPlans = ['esencial', 'pro', 'prime'];
+        const hasPremiumAccess = paidPlans.includes(user.planKey || '') && user.planStatus === 'active';
 
         if (!hasPremiumAccess) {
           logger.warn(`User ${userId} attempted to invest in premium project ${projectId} without premium subscription`);

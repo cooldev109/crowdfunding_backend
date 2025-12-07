@@ -24,9 +24,6 @@ interface EnvConfig {
   CLOUDINARY_API_SECRET?: string;
   MAX_FILE_SIZE: number;
   ALLOWED_FILE_TYPES: string;
-  OPENAI_API_KEY?: string;
-  OPENAI_MODEL?: string;
-  OPENAI_VISION_MODEL?: string;
   // Wompi (Colombian Payment Gateway)
   WOMPI_PUBLIC_KEY?: string;
   WOMPI_PRIVATE_KEY?: string;
@@ -69,9 +66,6 @@ export const ENV: EnvConfig = {
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
   MAX_FILE_SIZE: getEnvNumber('MAX_FILE_SIZE', 5242880),
   ALLOWED_FILE_TYPES: getEnvVar('ALLOWED_FILE_TYPES', '.xlsx,.csv'),
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-  OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-4',
-  OPENAI_VISION_MODEL: process.env.OPENAI_VISION_MODEL,
   // Wompi (Colombian Payment Gateway)
   WOMPI_PUBLIC_KEY: process.env.WOMPI_PUBLIC_KEY,
   WOMPI_PRIVATE_KEY: process.env.WOMPI_PRIVATE_KEY,

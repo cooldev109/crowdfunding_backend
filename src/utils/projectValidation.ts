@@ -37,7 +37,7 @@ export const createProjectSchema = z.object({
     .min(1, 'Duration must be at least 1 month')
     .max(240, 'Duration cannot exceed 240 months'),
   startDate: z.string().datetime().optional().or(z.date().optional()),
-  status: z.enum(['active', 'completed', 'closed']).optional().default('active'),
+  status: z.enum(['active', 'funded', 'completed', 'closed']).optional().default('active'),
   imageUrl: z
     .string()
     .refine(
@@ -76,28 +76,40 @@ export const updateProjectSchema = z.object({
     .trim()
     .optional(),
   category: z.string().min(1, 'Category is required').trim().optional(),
+  location: z.string().trim().optional(),
   minInvestment: z
     .number()
-    .positive('Minimum investment must be positive')
+    .min(0, 'Minimum investment must be positive')
     .optional(),
   roiPercent: z
     .number()
-    .positive('ROI must be positive')
+    .min(0, 'ROI must be positive')
     .max(1000, 'ROI cannot exceed 1000%')
     .optional(),
+  roiMin: z.number().min(0).optional(),
+  roiMax: z.number().min(0).optional(),
   targetAmount: z
     .number()
     .positive('Target amount must be positive')
     .optional(),
   fundedAmount: z.number().min(0, 'Funded amount cannot be negative').optional(),
+  totalInvestors: z.number().min(0).optional(),
+  totalUnits: z.number().min(1).optional(),
+  unitPrice: z.number().min(0).optional(),
   durationMonths: z
     .number()
     .int('Duration must be a whole number')
     .min(1, 'Duration must be at least 1 month')
     .max(240, 'Duration cannot exceed 240 months')
     .optional(),
+  investmentPeriodMin: z.number().min(1).optional(),
+  investmentPeriodMax: z.number().min(1).optional(),
   startDate: z.string().datetime().optional().or(z.date().optional()),
-  status: z.enum(['active', 'completed', 'closed']).optional(),
+  endDate: z.string().datetime().optional().or(z.date().optional()),
+  deadline: z.string().datetime().optional().or(z.date().optional()),
+  status: z.enum(['active', 'funded', 'completed', 'closed']).optional(),
+  isPremium: z.boolean().optional(),
+  featured: z.boolean().optional(),
   imageUrl: z
     .string()
     .refine(
@@ -106,6 +118,15 @@ export const updateProjectSchema = z.object({
     )
     .optional()
     .or(z.literal('')),
+  galleryImages: z.array(z.string()).optional(),
+  keyFeatures: z
+    .array(
+      z.object({
+        title: z.string(),
+        description: z.string(),
+      })
+    )
+    .optional(),
   documents: z
     .array(
       z.object({
@@ -118,6 +139,24 @@ export const updateProjectSchema = z.object({
       })
     )
     .optional(),
+  milestones: z
+    .array(
+      z.object({
+        title: z.string(),
+        description: z.string(),
+        date: z.string().datetime().or(z.date()),
+        status: z.enum(['completed', 'in_progress', 'upcoming']).optional(),
+      })
+    )
+    .optional(),
+  // Auction-related fields
+  code: z.string().optional(),
+  city: z.string().optional(),
+  auctionDate: z.string().datetime().optional().or(z.date().optional()),
+  propertyType: z.string().optional(),
+  judicialAppraisal: z.number().min(0).optional(),
+  commercialValue: z.number().min(0).optional(),
+  basePrice: z.number().min(0).optional(),
 });
 
 // Query/filter schema
@@ -125,7 +164,7 @@ export const projectQuerySchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default('10'),
   category: z.string().optional(),
-  status: z.enum(['active', 'completed', 'closed']).optional(),
+  status: z.enum(['active', 'funded', 'completed', 'closed']).optional(),
   minROI: z.string().regex(/^\d+(\.\d+)?$/).transform(Number).optional(),
   maxROI: z.string().regex(/^\d+(\.\d+)?$/).transform(Number).optional(),
   search: z.string().optional(),
@@ -136,7 +175,7 @@ export const adminProjectQuerySchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default('1000'),
   category: z.string().optional(),
-  status: z.enum(['active', 'completed', 'closed']).optional(),
+  status: z.enum(['active', 'funded', 'completed', 'closed']).optional(),
   minROI: z.string().regex(/^\d+(\.\d+)?$/).transform(Number).optional(),
   maxROI: z.string().regex(/^\d+(\.\d+)?$/).transform(Number).optional(),
   search: z.string().optional(),
@@ -147,7 +186,7 @@ export const premiumProjectQuerySchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default('500'),
   category: z.string().optional(),
-  status: z.enum(['active', 'completed', 'closed']).optional(),
+  status: z.enum(['active', 'funded', 'completed', 'closed']).optional(),
   minROI: z.string().regex(/^\d+(\.\d+)?$/).transform(Number).optional(),
   maxROI: z.string().regex(/^\d+(\.\d+)?$/).transform(Number).optional(),
   search: z.string().optional(),
@@ -161,7 +200,7 @@ export const advancedSearchSchema = z.object({
 
   // Basic filters (available to all plans)
   category: z.string().optional(),
-  status: z.enum(['active', 'completed', 'closed']).optional(),
+  status: z.enum(['active', 'funded', 'completed', 'closed']).optional(),
   search: z.string().optional(),
 
   // Plus/Premium: Multiple categories

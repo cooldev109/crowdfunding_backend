@@ -417,6 +417,44 @@ export const generateIntegrity = async (req: Request, res: Response, next: NextF
   }
 };
 
+/**
+ * Get user's payment history
+ */
+export const getPaymentHistory = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?._id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const [payments, total] = await Promise.all([
+      Payment.find({ userId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('investmentId', 'projectId amount')
+        .populate('subscriptionId', 'planKey')
+        .lean(),
+      Payment.countDocuments({ userId }),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        payments,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Helper function to map Wompi status to Payment status
 function mapWompiStatusToPaymentStatus(wompiStatus: WompiTransactionStatus): PaymentStatus {
   switch (wompiStatus) {

@@ -24,7 +24,10 @@ export interface PaginatedResponse<T> extends ApiResponse<T> {
 }
 
 export type UserRole = 'admin' | 'investor';
-export type PlanKey = 'free' | 'premium';
-export type PlanStatus = 'active' | 'expired' | 'cancelled';
-export type ProjectStatus = 'active' | 'completed' | 'closed';
-export type PaymentGateway = 'stripe' | 'pagseguro';
+export type PlanKey = 'free' | 'esencial' | 'pro' | 'prime';
+export type PlanStatus = 'active' | 'expired' | 'cancelled' | 'pending';
+export type ProjectStatus = 'active' | 'funded' | 'completed' | 'closed';
+export type PaymentGateway = 'stripe' | 'wompi' | 'pagseguro';
+export type InvestmentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
+export type PayoutStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type PayoutType = 'principal' | 'roi' | 'dividend';

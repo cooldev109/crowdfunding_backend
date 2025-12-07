@@ -6,16 +6,38 @@ export interface IProject extends Document {
   category: string;
   location?: string;
   minInvestment: number;
+  // ROI range (roiPercent kept for backward compatibility)
   roiPercent: number;
+  roiMin?: number;
+  roiMax?: number;
+  // Target and funding
   targetAmount: number;
   fundedAmount: number;
   totalInvestors: number;
+  // Units
+  totalUnits: number;
+  unitPrice?: number;
+  // Investment period range (durationMonths kept for backward compatibility)
   durationMonths: number;
+  investmentPeriodMin?: number;
+  investmentPeriodMax?: number;
+  // Dates
   startDate?: Date;
   endDate?: Date;
+  deadline?: Date;
+  // Status and flags
   status: 'active' | 'funded' | 'completed' | 'closed';
   isPremium: boolean;
+  featured: boolean;
+  // Media
   imageUrl: string;
+  galleryImages?: string[];
+  // Key features for display
+  keyFeatures?: Array<{
+    title: string;
+    description: string;
+  }>;
+  // Documents
   documents?: Array<{
     name: string;
     data: string;
@@ -23,6 +45,13 @@ export interface IProject extends Document {
     size: number;
     title?: string;
     subtitle?: string;
+  }>;
+  // Timeline/Milestones
+  milestones?: Array<{
+    title: string;
+    description: string;
+    date: Date;
+    status: 'completed' | 'in_progress' | 'upcoming';
   }>;
   // Auction-related fields for premium properties
   code?: string;
@@ -68,11 +97,20 @@ const ProjectSchema = new Schema<IProject>(
       required: [true, 'Minimum investment is required'],
       min: [0, 'Minimum investment must be positive'],
     },
+    // ROI range (roiPercent kept for backward compatibility)
     roiPercent: {
       type: Number,
       required: [true, 'ROI percentage is required'],
       min: [0, 'ROI must be positive'],
       max: [1000, 'ROI cannot exceed 1000%'],
+    },
+    roiMin: {
+      type: Number,
+      min: [0, 'Minimum ROI must be positive'],
+    },
+    roiMax: {
+      type: Number,
+      min: [0, 'Maximum ROI must be positive'],
     },
     targetAmount: {
       type: Number,
@@ -89,16 +127,38 @@ const ProjectSchema = new Schema<IProject>(
       default: 0,
       min: [0, 'Total investors cannot be negative'],
     },
+    // Units
+    totalUnits: {
+      type: Number,
+      default: 100,
+      min: [1, 'Total units must be at least 1'],
+    },
+    unitPrice: {
+      type: Number,
+      min: [0, 'Unit price must be positive'],
+    },
+    // Investment period range (durationMonths kept for backward compatibility)
     durationMonths: {
       type: Number,
       required: [true, 'Duration is required'],
       min: [1, 'Duration must be at least 1 month'],
       max: [240, 'Duration cannot exceed 240 months'],
     },
+    investmentPeriodMin: {
+      type: Number,
+      min: [1, 'Minimum investment period must be at least 1 month'],
+    },
+    investmentPeriodMax: {
+      type: Number,
+      min: [1, 'Maximum investment period must be at least 1 month'],
+    },
     startDate: {
       type: Date,
     },
     endDate: {
+      type: Date,
+    },
+    deadline: {
       type: Date,
     },
     status: {
@@ -110,10 +170,25 @@ const ProjectSchema = new Schema<IProject>(
       type: Boolean,
       default: false,
     },
+    featured: {
+      type: Boolean,
+      default: false,
+    },
     imageUrl: {
       type: String,
       required: [true, 'Project image is required'],
       trim: true,
+    },
+    galleryImages: {
+      type: [String],
+      default: [],
+    },
+    keyFeatures: {
+      type: [{
+        title: { type: String, required: true },
+        description: { type: String, required: true },
+      }],
+      default: [],
     },
     documents: {
       type: [{
@@ -123,6 +198,15 @@ const ProjectSchema = new Schema<IProject>(
         size: { type: Number, required: true },
         title: { type: String },
         subtitle: { type: String },
+      }],
+      default: [],
+    },
+    milestones: {
+      type: [{
+        title: { type: String, required: true },
+        description: { type: String, required: true },
+        date: { type: Date, required: true },
+        status: { type: String, enum: ['completed', 'in_progress', 'upcoming'], default: 'upcoming' },
       }],
       default: [],
     },
@@ -171,6 +255,8 @@ ProjectSchema.index({ category: 1 });
 ProjectSchema.index({ createdAt: -1 });
 ProjectSchema.index({ roiPercent: -1 });
 ProjectSchema.index({ isPremium: 1 });
+ProjectSchema.index({ featured: 1 });
+ProjectSchema.index({ deadline: 1 });
 
 // Virtual fields
 ProjectSchema.virtual('progressPercent').get(function () {
@@ -194,6 +280,14 @@ ProjectSchema.virtual('moneyRaised').get(function () {
 
 ProjectSchema.virtual('investorsCount').get(function () {
   return this.totalInvestors;
+});
+
+// Calculate available units
+ProjectSchema.virtual('unitsAvailable').get(function () {
+  const totalUnits = this.totalUnits || 100;
+  const unitPrice = this.unitPrice || Math.floor(this.targetAmount / totalUnits);
+  const soldUnits = Math.floor(this.fundedAmount / unitPrice);
+  return Math.max(0, totalUnits - soldUnits);
 });
 
 // Ensure virtuals are included in JSON output

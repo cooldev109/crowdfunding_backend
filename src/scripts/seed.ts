@@ -34,7 +34,7 @@ async function seed() {
       passwordHash: adminPassword,
       phone: '+55 11 98765-4321',
       role: 'admin',
-      planKey: 'premium',
+      planKey: 'prime',
       planStatus: 'active',
       isVerified: true,
       lastLogin: new Date(),
@@ -396,7 +396,7 @@ async function seed() {
     console.log('   Email:    admin@investflow.com');
     console.log('   Password: admin123');
     console.log('   Role:     admin');
-    console.log('   Plan:     premium\n');
+    console.log('   Plan:     prime\n');
 
     console.log('👤 INVESTOR ACCOUNT:');
     console.log('   Email:    investor@test.com');

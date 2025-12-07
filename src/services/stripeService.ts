@@ -11,11 +11,30 @@ const stripe = new Stripe(ENV.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 });
 
+// Plan type definition
+export type PlanKey = 'free' | 'esencial' | 'pro' | 'prime';
+
 // Plan configurations
-export const PLANS = {
+export const PLANS: Record<PlanKey, {
+  name: string;
+  price: number;
+  priceMonthly: number;
+  priceAnnual: number;
+  interval: string;
+  priceId: string | null;
+  priceIdAnnual?: string | null;
+  features: string[];
+  limits: {
+    projectsPerMonth: number;
+    simulationsPerMonth: number;
+  };
+}> = {
   free: {
     name: 'Free',
     price: 0,
+    priceMonthly: 0,
+    priceAnnual: 0,
+    interval: 'forever',
     priceId: null, // No Stripe price for free plan
     features: [
       'Browse all projects',
@@ -29,21 +48,56 @@ export const PLANS = {
       simulationsPerMonth: 5,
     },
   },
-  premium: {
-    name: 'Premium',
-    price: 100,
-    priceId: process.env.STRIPE_PRICE_PREMIUM || 'price_premium',
+  esencial: {
+    name: 'Esencial',
+    price: 49000,
+    priceMonthly: 49000,
+    priceAnnual: 49000, // 15-day plan, no annual option
+    interval: '15 días',
+    priceId: process.env.STRIPE_PRICE_ESENCIAL || 'price_esencial',
     features: [
-      'All Free features',
-      'Access to premium projects',
-      'Unlimited project access',
-      'Advanced ROI calculator with scenarios',
-      'Detailed analytics & reports',
-      'Investment recommendations',
-      'Excel export capabilities',
-      'Priority email support',
-      'Early access to new projects',
-      'Portfolio management tools',
+      'Acceso completo al listado de remates',
+      'Programar alertas personalizadas',
+      'Guardar tus remates favoritos',
+    ],
+    limits: {
+      projectsPerMonth: -1, // Unlimited
+      simulationsPerMonth: 5,
+    },
+  },
+  pro: {
+    name: 'Pro',
+    price: 98000,
+    priceMonthly: 98000,
+    priceAnnual: 823200, // 30% discount
+    interval: 'mes',
+    priceId: process.env.STRIPE_PRICE_PRO || 'price_pro',
+    priceIdAnnual: process.env.STRIPE_PRICE_PRO_ANNUAL || 'price_pro_annual',
+    features: [
+      'Todo lo del plan Esencial',
+      'Evaluador de inversiones',
+      '1 Masterclass mensual con expertos',
+      'Top 2 oportunidades de la semana',
+    ],
+    limits: {
+      projectsPerMonth: -1, // Unlimited
+      simulationsPerMonth: -1, // Unlimited
+    },
+  },
+  prime: {
+    name: 'Prime',
+    price: 139000,
+    priceMonthly: 139000,
+    priceAnnual: 1167600, // 30% discount
+    interval: 'mes',
+    priceId: process.env.STRIPE_PRICE_PRIME || 'price_prime',
+    priceIdAnnual: process.env.STRIPE_PRICE_PRIME_ANNUAL || 'price_prime_annual',
+    features: [
+      'Todo lo del plan Esencial',
+      'Evaluador de inversiones',
+      '2 Masterclass mensuales',
+      'Top 3 oportunidades de la semana',
+      '1 consultoría mensual con nuestro equipo experto',
     ],
     limits: {
       projectsPerMonth: -1, // Unlimited
@@ -58,9 +112,10 @@ export class StripeService {
    */
   static async createCheckoutSession(
     userId: string,
-    planKey: 'premium',
+    planKey: PlanKey,
     successUrl: string,
-    cancelUrl: string
+    cancelUrl: string,
+    billingCycle: 'monthly' | 'annual' = 'monthly'
   ): Promise<Stripe.Checkout.Session> {
     try {
       const user = await User.findById(userId);
@@ -69,8 +124,18 @@ export class StripeService {
       }
 
       const plan = PLANS[planKey];
-      if (!plan || !plan.priceId) {
+      if (!plan || planKey === 'free') {
         throw new AppError('Invalid plan or plan not available', 400);
+      }
+
+      // Get the appropriate price ID based on billing cycle
+      let priceId = plan.priceId;
+      if (billingCycle === 'annual' && plan.priceIdAnnual) {
+        priceId = plan.priceIdAnnual;
+      }
+
+      if (!priceId) {
+        throw new AppError('Price not configured for this plan', 400);
       }
 
       // Check if user already has this plan
@@ -100,7 +165,7 @@ export class StripeService {
         payment_method_types: ['card'],
         line_items: [
           {
-            price: plan.priceId,
+            price: priceId,
             quantity: 1,
           },
         ],
@@ -109,17 +174,19 @@ export class StripeService {
         metadata: {
           userId: userId,
           planKey: planKey,
+          billingCycle: billingCycle,
         },
         subscription_data: {
           metadata: {
             userId: userId,
             planKey: planKey,
+            billingCycle: billingCycle,
           },
         },
       });
 
       logger.info(
-        `Checkout session created for user ${user.email}, plan: ${planKey}`
+        `Checkout session created for user ${user.email}, plan: ${planKey}, billing: ${billingCycle}`
       );
 
       return session;
@@ -137,9 +204,7 @@ export class StripeService {
   ): Promise<void> {
     try {
       const userId = subscription.metadata.userId;
-      const planKey = subscription.metadata.planKey as
-        | 'free'
-        | 'premium';
+      const planKey = subscription.metadata.planKey as PlanKey;
 
       if (!userId || !planKey) {
         throw new AppError('Missing metadata in subscription', 400);
@@ -231,15 +296,17 @@ export class StripeService {
     paymentIntent: Stripe.PaymentIntent
   ): Promise<void> {
     try {
-      const userId = paymentIntent.metadata.userId;
+      const { userId, subscriptionId, investmentId } = paymentIntent.metadata;
 
       if (!userId) {
         return; // Skip if no userId in metadata
       }
 
-      // Record payment
+      // Record payment with proper links
       await Payment.create({
         userId: userId,
+        ...(subscriptionId && { subscriptionId }),
+        ...(investmentId && { investmentId }),
         transactionId: paymentIntent.id,
         amount: paymentIntent.amount / 100, // Convert from cents
         currency: paymentIntent.currency.toUpperCase(),
@@ -247,7 +314,7 @@ export class StripeService {
         method: 'stripe',
       });
 
-      logger.info(`Payment recorded for user ${userId}`);
+      logger.info(`Payment recorded for user ${userId}${subscriptionId ? `, subscription: ${subscriptionId}` : ''}${investmentId ? `, investment: ${investmentId}` : ''}`);
     } catch (error: any) {
       logger.error({ err: error }, 'Failed to record payment');
     }
@@ -426,9 +493,10 @@ export class StripeService {
         }
       }
 
-      // Record payment
+      // Record payment with investmentId link
       await Payment.create({
         userId: userId,
+        investmentId: investmentId,
         transactionId: paymentIntent.id,
         amount: paymentIntent.amount / 100,
         currency: paymentIntent.currency.toUpperCase(),

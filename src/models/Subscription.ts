@@ -1,13 +1,15 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
+export type PlanKey = 'free' | 'esencial' | 'pro' | 'prime';
+
 export interface ISubscription extends Document {
   userId: Types.ObjectId;
-  planKey: 'free' | 'premium';
+  planKey: PlanKey;
   price: number;
   startDate: Date;
   renewalDate: Date;
-  paymentGateway: 'stripe' | 'pagseguro';
-  status: 'active' | 'expired' | 'cancelled';
+  paymentGateway: 'stripe' | 'pagseguro' | 'wompi';
+  status: 'pending' | 'active' | 'expired' | 'cancelled';
   lastInvoiceId?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -22,7 +24,7 @@ const SubscriptionSchema = new Schema<ISubscription>(
     },
     planKey: {
       type: String,
-      enum: ['free', 'premium'],
+      enum: ['free', 'esencial', 'pro', 'prime'],
       required: [true, 'Plan key is required'],
     },
     price: {
@@ -41,13 +43,13 @@ const SubscriptionSchema = new Schema<ISubscription>(
     },
     paymentGateway: {
       type: String,
-      enum: ['stripe', 'pagseguro'],
+      enum: ['stripe', 'pagseguro', 'wompi'],
       required: [true, 'Payment gateway is required'],
     },
     status: {
       type: String,
-      enum: ['active', 'expired', 'cancelled'],
-      default: 'active',
+      enum: ['pending', 'active', 'expired', 'cancelled'],
+      default: 'pending',
     },
     lastInvoiceId: {
       type: String,

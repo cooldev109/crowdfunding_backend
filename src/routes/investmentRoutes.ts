@@ -37,6 +37,17 @@ router.get('/stats', authGuard, InvestmentController.getInvestmentStats);
 router.get('/', authGuard, adminGuard, InvestmentController.getAllInvestments);
 
 /**
+ * @route   GET /api/investments/project/:projectId
+ * @desc    Get all investments for a specific project
+ * @access  Private (Admin only)
+ */
+router.get(
+  '/project/:projectId',
+  authGuard,
+  InvestmentController.getProjectInvestments
+);
+
+/**
  * @route   GET /api/investments/:id
  * @desc    Get investment by ID
  * @access  Private
@@ -49,16 +60,5 @@ router.get('/:id', authGuard, InvestmentController.getInvestmentById);
  * @access  Private
  */
 router.post('/:id/cancel', authGuard, InvestmentController.cancelInvestment);
-
-/**
- * @route   GET /api/investments/project/:projectId
- * @desc    Get all investments for a specific project
- * @access  Private (Admin only)
- */
-router.get(
-  '/project/:projectId',
-  authGuard,
-  InvestmentController.getProjectInvestments
-);
 
 export default router;
