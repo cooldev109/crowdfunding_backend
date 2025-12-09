@@ -17,7 +17,6 @@ import notificationRoutes from './routes/notificationRoutes';
 import simulationRoutes from './routes/simulationRoutes';
 import contactRoutes from './routes/contactRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
-import webhookRoutes from './routes/webhookRoutes';
 import wompiRoutes from './routes/wompiRoutes';
 import payoutRoutes from './routes/payoutRoutes';
 import verificationRoutes from './routes/verificationRoutes';
@@ -84,9 +83,6 @@ app.use(
 
 // Compression middleware
 app.use(compression());
-
-// Stripe webhook endpoint - MUST be before express.json() to receive raw body
-app.use('/api/webhooks', webhookRoutes);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

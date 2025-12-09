@@ -9,16 +9,13 @@ interface EnvConfig {
   JWT_SECRET: string;
   JWT_EXPIRES_IN: string;
   CLIENT_URL: string;
-  STRIPE_SECRET_KEY: string;
-  STRIPE_PUBLISHABLE_KEY: string;
-  STRIPE_WEBHOOK_SECRET: string;
   PAGSEGURO_TOKEN?: string;
   PAGSEGURO_EMAIL?: string;
-  EMAIL_HOST: string;
+  EMAIL_HOST?: string;
   EMAIL_PORT: number;
-  EMAIL_USER: string;
-  EMAIL_PASS: string;
-  EMAIL_FROM: string;
+  EMAIL_USER?: string;
+  EMAIL_PASS?: string;
+  EMAIL_FROM?: string;
   CLOUDINARY_CLOUD_NAME?: string;
   CLOUDINARY_API_KEY?: string;
   CLOUDINARY_API_SECRET?: string;
@@ -51,16 +48,13 @@ export const ENV: EnvConfig = {
   JWT_SECRET: getEnvVar('JWT_SECRET'),
   JWT_EXPIRES_IN: getEnvVar('JWT_EXPIRES_IN', '7d'),
   CLIENT_URL: getEnvVar('CLIENT_URL'),
-  STRIPE_SECRET_KEY: getEnvVar('STRIPE_SECRET_KEY'),
-  STRIPE_PUBLISHABLE_KEY: getEnvVar('STRIPE_PUBLISHABLE_KEY'),
-  STRIPE_WEBHOOK_SECRET: getEnvVar('STRIPE_WEBHOOK_SECRET'),
   PAGSEGURO_TOKEN: process.env.PAGSEGURO_TOKEN,
   PAGSEGURO_EMAIL: process.env.PAGSEGURO_EMAIL,
-  EMAIL_HOST: getEnvVar('EMAIL_HOST'),
+  EMAIL_HOST: process.env.EMAIL_HOST || process.env.SMTP_HOST,
   EMAIL_PORT: getEnvNumber('EMAIL_PORT', 587),
-  EMAIL_USER: getEnvVar('EMAIL_USER'),
-  EMAIL_PASS: getEnvVar('EMAIL_PASS'),
-  EMAIL_FROM: getEnvVar('EMAIL_FROM'),
+  EMAIL_USER: process.env.EMAIL_USER || process.env.SMTP_USER,
+  EMAIL_PASS: process.env.EMAIL_PASS || process.env.SMTP_PASSWORD,
+  EMAIL_FROM: process.env.EMAIL_FROM || process.env.EMAIL_FROM_ADDRESS,
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,

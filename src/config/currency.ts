@@ -5,11 +5,8 @@
 
 // Currency Configuration
 export const CURRENCY_CONFIG = {
-  // Main currency code (must match Stripe supported currencies)
-  code: 'USD' as const,
-
-  // Stripe uses lowercase
-  stripeCode: 'usd' as const,
+  // Main currency code
+  code: 'COP' as const,
 } as const;
 
 // Supported currencies

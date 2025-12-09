@@ -7,7 +7,7 @@ export interface IInvestment extends Document {
   transactionId?: string;
   paymentId?: mongoose.Types.ObjectId;
   status: 'pending' | 'completed' | 'failed' | 'refunded';
-  paymentMethod: 'stripe' | 'paypal' | 'bank_transfer' | 'wallet' | 'wompi' | 'card' | 'pse' | 'bancolombia' | 'nequi';
+  paymentMethod: 'paypal' | 'bank_transfer' | 'wallet' | 'wompi' | 'card' | 'pse' | 'bancolombia' | 'nequi';
   investmentDate: Date;
   expectedReturn: number;
   expectedReturnDate?: Date;
@@ -66,7 +66,7 @@ const investmentSchema = new Schema<IInvestment>(
     },
     paymentMethod: {
       type: String,
-      enum: ['stripe', 'paypal', 'bank_transfer', 'wallet', 'wompi', 'card', 'pse', 'bancolombia', 'nequi'],
+      enum: ['paypal', 'bank_transfer', 'wallet', 'wompi', 'card', 'pse', 'bancolombia', 'nequi'],
       required: [true, 'Payment method is required'],
     },
     investmentDate: {

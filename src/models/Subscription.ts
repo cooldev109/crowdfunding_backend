@@ -8,7 +8,7 @@ export interface ISubscription extends Document {
   price: number;
   startDate: Date;
   renewalDate: Date;
-  paymentGateway: 'stripe' | 'pagseguro' | 'wompi';
+  paymentGateway: 'pagseguro' | 'wompi';
   status: 'pending' | 'active' | 'expired' | 'cancelled';
   lastInvoiceId?: string;
   createdAt: Date;
@@ -43,7 +43,7 @@ const SubscriptionSchema = new Schema<ISubscription>(
     },
     paymentGateway: {
       type: String,
-      enum: ['stripe', 'pagseguro', 'wompi'],
+      enum: ['pagseguro', 'wompi'],
       required: [true, 'Payment gateway is required'],
     },
     status: {

@@ -7,7 +7,7 @@ export interface IPayout extends Document {
   amount: number;
   type: 'roi' | 'principal' | 'partial' | 'bonus';
   status: 'pending' | 'processing' | 'completed' | 'failed';
-  paymentMethod: 'stripe' | 'bank_transfer' | 'wompi';
+  paymentMethod: 'bank_transfer' | 'wompi';
   transactionId?: string;
   paymentReference?: string;
   scheduledDate: Date;
@@ -68,7 +68,7 @@ const payoutSchema = new Schema<IPayout>(
     },
     paymentMethod: {
       type: String,
-      enum: ['stripe', 'bank_transfer', 'wompi'],
+      enum: ['bank_transfer', 'wompi'],
       required: [true, 'Payment method is required'],
     },
     transactionId: {

@@ -15,13 +15,11 @@ export enum PaymentMethod {
   BANCOLOMBIA = 'bancolombia',
   NEQUI = 'nequi',
   BANK_TRANSFER = 'bank_transfer',
-  STRIPE = 'stripe',
 }
 
 // Payment gateway enum
 export enum PaymentGateway {
   WOMPI = 'wompi',
-  STRIPE = 'stripe',
   PAYU = 'payu',
 }
 
@@ -38,7 +36,6 @@ export interface IPayment extends Document {
   gatewayReference?: string;
   metadata?: {
     wompiTransactionId?: string;
-    stripePaymentIntentId?: string;
     paymentMethodType?: string;
     financialInstitutionCode?: string;
     lastWebhookEvent?: string;

@@ -20,7 +20,7 @@ interface SchedulePayoutOptions {
   projectId: string;
   amount: number;
   type: 'roi' | 'principal' | 'partial' | 'bonus';
-  paymentMethod: 'stripe' | 'bank_transfer' | 'wompi';
+  paymentMethod: 'bank_transfer' | 'wompi';
   scheduledDate: Date;
   metadata?: Record<string, any>;
 }
@@ -79,7 +79,7 @@ export class PayoutService {
         projectId,
         amount: investment.amount,
         type: 'principal',
-        paymentMethod: investment.paymentMethod as 'stripe' | 'bank_transfer' | 'wompi',
+        paymentMethod: investment.paymentMethod as 'bank_transfer' | 'wompi',
         scheduledDate,
         metadata: {
           projectTitle: project.title,
@@ -96,7 +96,7 @@ export class PayoutService {
           projectId,
           amount: roiAmount,
           type: 'roi',
-          paymentMethod: investment.paymentMethod as 'stripe' | 'bank_transfer' | 'wompi',
+          paymentMethod: investment.paymentMethod as 'bank_transfer' | 'wompi',
           scheduledDate,
           metadata: {
             projectTitle: project.title,
@@ -128,7 +128,7 @@ export class PayoutService {
       scheduledDate: { $lte: new Date() },
       retryCount: { $lt: 3 }, // Max 3 retries
     })
-      .populate('userId', 'name email stripeCustomerId')
+      .populate('userId', 'name email')
       .populate('projectId', 'title')
       .limit(100); // Process in batches
 
@@ -162,9 +162,6 @@ export class PayoutService {
       let transactionId: string;
 
       switch (payout.paymentMethod) {
-        case 'stripe':
-          transactionId = await this.processStripePayout(payout, user);
-          break;
         case 'wompi':
           transactionId = await this.processWompiPayout(payout, user);
           break;
@@ -218,33 +215,6 @@ export class PayoutService {
     } finally {
       session.endSession();
     }
-  }
-
-  /**
-   * Process Stripe payout
-   */
-  private static async processStripePayout(
-    payout: IPayout,
-    _user: any
-  ): Promise<string> {
-    // In a real implementation, this would use Stripe Connect
-    // to transfer funds to the user's connected account
-
-    // For now, simulate the payout
-    const transactionId = `stripe_payout_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-
-    logger.info(`Stripe payout initiated: ${transactionId} for ${payout.amount}`);
-
-    // TODO: Implement actual Stripe Connect transfer
-    // const stripe = new Stripe(ENV.STRIPE_SECRET_KEY);
-    // const transfer = await stripe.transfers.create({
-    //   amount: Math.round(payout.amount * 100), // Convert to cents
-    //   currency: 'cop',
-    //   destination: user.stripeConnectAccountId,
-    //   transfer_group: `payout_${payout._id}`,
-    // });
-
-    return transactionId;
   }
 
   /**
@@ -532,7 +502,7 @@ export class PayoutService {
         projectId,
         amount: periodicAmount,
         type: 'partial',
-        paymentMethod: investment.paymentMethod as 'stripe' | 'bank_transfer' | 'wompi',
+        paymentMethod: investment.paymentMethod as 'bank_transfer' | 'wompi',
         scheduledDate: nextDistributionDate,
         metadata: {
           projectTitle: project.title,

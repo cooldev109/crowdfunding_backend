@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { PLANS, PlanKey } from '../services/stripeService';
+import { PLANS, PlanKey } from '../config/plans';
 import { wompiService, WompiTransactionStatus } from '../services/wompiService';
 import { User } from '../models/User';
 import { Subscription } from '../models/Subscription';

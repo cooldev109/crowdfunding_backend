@@ -49,7 +49,6 @@ export interface IUser extends Document {
   planKey: PlanKey;
   planStatus: 'active' | 'expired' | 'cancelled';
   planRenewal?: Date;
-  stripeCustomerId?: string;
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
@@ -115,9 +114,6 @@ const UserSchema = new Schema<IUser>(
     },
     planRenewal: {
       type: Date,
-    },
-    stripeCustomerId: {
-      type: String,
     },
     lastLogin: {
       type: Date,
