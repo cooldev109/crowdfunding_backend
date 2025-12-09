@@ -23,6 +23,9 @@ import verificationRoutes from './routes/verificationRoutes';
 
 const app: Application = express();
 
+// Trust proxy (required when behind Nginx/reverse proxy)
+app.set('trust proxy', 1);
+
 // Security middleware - enhanced for production
 app.use(helmet({
   contentSecurityPolicy: ENV.NODE_ENV === 'production' ? {
