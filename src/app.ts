@@ -87,9 +87,9 @@ app.use(
 // Compression middleware
 app.use(compression());
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parsing middleware (increased limit for base64 image uploads)
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 // Cookie parser
 app.use(cookieParser());
